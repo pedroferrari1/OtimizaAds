@@ -4,10 +4,12 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, BarChart3, Menu, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AppLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { signOut, user } = useAuth();
 
   const navigation = [
     { name: "Painel", href: "/dashboard", icon: BarChart3 },
@@ -16,9 +18,8 @@ const AppLayout = () => {
     { name: "Histórico", href: "/historico", icon: BarChart3 },
   ];
 
-  const handleLogout = () => {
-    // TODO: Implement logout functionality
-    console.log("Logout");
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (
@@ -73,10 +74,17 @@ const AppLayout = () => {
               <NavItems />
             </div>
 
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
+            <div className="flex items-center gap-4">
+              {user && (
+                <span className="text-sm text-gray-600 hidden sm:block">
+                  Olá, {user.user_metadata?.full_name || user.email}
+                </span>
+              )}
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>

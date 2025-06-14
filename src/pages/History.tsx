@@ -1,47 +1,59 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, Calendar, Copy, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HistoryItem {
   id: string;
   type: "generation" | "diagnosis";
   title: string;
   content: string;
-  createdAt: string;
+  created_at: string;
 }
 
 const History = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [historyItems] = useState<HistoryItem[]>([
-    {
-      id: "1",
-      type: "generation",
-      title: "Curso de Marketing Digital",
-      content: "🔥 Curso de Marketing Digital está aqui! Aprenda as estratégias mais eficazes...",
-      createdAt: "2024-01-15"
-    },
-    {
-      id: "2",
-      type: "diagnosis",
-      title: "Análise de Anúncio - Produto Fitness",
-      content: "Pontuação: 7.5/10 - O gancho inicial está adequado, mas poderia ser mais impactante...",
-      createdAt: "2024-01-14"
-    },
-    {
-      id: "3",
-      type: "generation",
-      title: "Consultoria Empresarial",
-      content: "Transforme sua empresa com nossa consultoria especializada! Mais de 500 empresas...",
-      createdAt: "2024-01-13"
-    }
-  ]);
-  
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      fetchHistoryItems();
+    }
+  }, [user]);
+
+  const fetchHistoryItems = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('history_items')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching history:', error);
+        toast({
+          title: "Erro ao carregar histórico",
+          description: "Não foi possível carregar seus itens do histórico.",
+          variant: "destructive",
+        });
+      } else {
+        setHistoryItems(data || []);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredItems = historyItems.filter(item =>
     item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -64,13 +76,33 @@ const History = () => {
     }
   };
 
-  const deleteItem = (id: string) => {
-    // TODO: Implement delete functionality
-    console.log("Delete item:", id);
-    toast({
-      title: "Item excluído",
-      description: "O item foi removido do seu histórico.",
-    });
+  const deleteItem = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('history_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast({
+          title: "Erro ao excluir",
+          description: "Não foi possível excluir o item.",
+          variant: "destructive",
+        });
+      } else {
+        setHistoryItems(prev => prev.filter(item => item.id !== id));
+        toast({
+          title: "Item excluído",
+          description: "O item foi removido do seu histórico.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o item.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getTypeLabel = (type: string) => {
@@ -80,6 +112,20 @@ const History = () => {
   const getTypeBadgeVariant = (type: string) => {
     return type === "generation" ? "default" : "secondary";
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Meu Histórico</h1>
+          <p className="text-gray-600 mt-2">Carregando seus itens...</p>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -117,7 +163,7 @@ const History = () => {
                     </div>
                     <CardDescription className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      {new Date(item.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(item.created_at).toLocaleDateString('pt-BR')}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
