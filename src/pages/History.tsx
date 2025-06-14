@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,14 +7,9 @@ import { Search, Calendar, Copy, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Tables } from "@/integrations/supabase/types";
 
-interface HistoryItem {
-  id: string;
-  type: "generation" | "diagnosis";
-  title: string;
-  content: string;
-  created_at: string;
-}
+type HistoryItem = Tables<'history_items'>;
 
 const History = () => {
   const [searchTerm, setSearchTerm] = useState("");
