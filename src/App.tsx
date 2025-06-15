@@ -1,9 +1,9 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-// Novos imports centralizados (features):
 import { AuthProvider, ProtectedRoute, AdminProtectedRoute, Login, Register } from "@/features/auth";
 import { AdGenerator, AdDiagnosis } from "@/features/ads";
 import { AdminDashboard, AdminUsers, AdminSettings, AdminAIConfig, AdminMonitoring, AdminSubscriptions } from "@/features/admin";
@@ -12,12 +12,9 @@ import { Dashboard } from "@/features/dashboard";
 import { History } from "@/features/history";
 import { Subscription } from "@/features/subscription";
 import ErrorBoundary from "@/components/ErrorBoundary";
-// import Index from "./pages/Index";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-// Protected app pages
 import AppLayout from "./components/layout/AppLayout";
-// Import AdminLayout for admin routes
 import AdminLayout from "@/components/admin/AdminLayout";
 
 const queryClient = new QueryClient();

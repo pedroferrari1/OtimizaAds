@@ -1,4 +1,5 @@
-import { useAuth } from '@/features/auth';
+
+import { useAuth } from './AuthContext';
 import { Navigate, useLocation } from 'react-router-dom';
 
 interface AdminProtectedRouteProps {
