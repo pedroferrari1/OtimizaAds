@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/features/auth';
@@ -47,12 +46,13 @@ export const useSubscription = () => {
         `)
         .eq('user_id', user.id)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       setUserSubscription(data);
     } catch (error) {
       console.error('Error fetching user subscription:', error);
+      setUserSubscription(null);
     }
   };
 
@@ -129,14 +129,16 @@ export const useSubscription = () => {
 
       if (error) throw error;
       
-      if (data.url) {
+      if (data?.url) {
         window.open(data.url, '_blank');
+      } else {
+        throw new Error('URL de checkout não recebida');
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível iniciar o checkout.",
+        description: "Não foi possível iniciar o checkout. Verifique se as configurações do Stripe estão corretas.",
         variant: "destructive",
       });
     }
@@ -148,14 +150,16 @@ export const useSubscription = () => {
 
       if (error) throw error;
       
-      if (data.url) {
+      if (data?.url) {
         window.open(data.url, '_blank');
+      } else {
+        throw new Error('URL do portal não recebida');
       }
     } catch (error) {
       console.error('Error opening customer portal:', error);
       toast({
         title: "Erro",
-        description: "Não foi possível abrir o portal de gerenciamento.",
+        description: "Não foi possível abrir o portal de gerenciamento. Verifique se as configurações do Stripe estão corretas.",
         variant: "destructive",
       });
     }
