@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,12 +154,12 @@ export const ErrorLogsViewer = () => {
               />
             </div>
             
-            <Select value={filters.error_type} onValueChange={(value) => setFilters({ ...filters, error_type: value })}>
+            <Select value={filters.error_type || "all"} onValueChange={(value) => setFilters({ ...filters, error_type: value === "all" ? "" : value })}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Tipo de erro" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os tipos</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 {errorTypes.map(type => (
                   <SelectItem key={type} value={type}>{type}</SelectItem>
                 ))}
@@ -174,12 +173,12 @@ export const ErrorLogsViewer = () => {
               onChange={(e) => setFilters({ ...filters, endpoint: e.target.value })}
             />
             
-            <Select value={filters.resolved} onValueChange={(value) => setFilters({ ...filters, resolved: value })}>
+            <Select value={filters.resolved || "all"} onValueChange={(value) => setFilters({ ...filters, resolved: value === "all" ? "" : value })}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="false">Ativos</SelectItem>
                 <SelectItem value="true">Resolvidos</SelectItem>
               </SelectContent>
@@ -360,3 +359,4 @@ export const ErrorLogsViewer = () => {
     </div>
   );
 };
+export {};
