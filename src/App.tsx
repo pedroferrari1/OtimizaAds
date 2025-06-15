@@ -3,49 +3,49 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
-import AppLayout from "./components/layout/AppLayout";
-import AdminLayout from "./components/admin/AdminLayout";
-import ErrorBoundary from "./components/ErrorBoundary";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import AdminProtectedRoute from "@/components/auth/AdminProtectedRoute";
+import ErrorBoundary from "@/components/ErrorBoundary";
+
+// Public pages
+import Index from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import NotFound from "./pages/NotFound";
+
+// Protected app pages
+import AppLayout from "./components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import AdGenerator from "./pages/AdGenerator";
 import AdDiagnosis from "./pages/AdDiagnosis";
 import History from "./pages/History";
+import Subscription from "./pages/Subscription";
+
+// Admin pages
+import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminMonitoring from "./pages/AdminMonitoring";
-import AdminAIConfig from "./pages/AdminAIConfig";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
-import NotFound from "./pages/NotFound";
-import LandingPage from "./pages/LandingPage";
+import AdminAIConfig from "./pages/AdminAIConfig";
+import AdminMonitoring from "./pages/AdminMonitoring";
+import AdminSubscriptions from "./pages/AdminSubscriptions";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
         <ErrorBoundary>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+          <AuthProvider>
             <Routes>
-              {/* Public landing page */}
+              {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
-              
-              {/* Authentication routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/registro" element={<Register />} />
               
@@ -55,15 +55,11 @@ const App = () => (
                   <AppLayout />
                 </ProtectedRoute>
               }>
-                <Route index element={<Navigate to="/app/dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
-                <Route path="ad-generator" element={<AdGenerator />} />
-                <Route path="ad-diagnosis" element={<AdDiagnosis />} />
-                <Route path="history" element={<History />} />
-                {/* Maintain backward compatibility with old routes */}
-                <Route path="gerador" element={<Navigate to="/app/ad-generator" replace />} />
-                <Route path="diagnostico" element={<Navigate to="/app/ad-diagnosis" replace />} />
-                <Route path="historico" element={<Navigate to="/app/history" replace />} />
+                <Route path="gerador" element={<AdGenerator />} />
+                <Route path="diagnostico" element={<AdDiagnosis />} />
+                <Route path="historico" element={<History />} />
+                <Route path="assinatura" element={<Subscription />} />
               </Route>
 
               {/* Admin routes */}
@@ -72,21 +68,24 @@ const App = () => (
                   <AdminLayout />
                 </AdminProtectedRoute>
               }>
-                <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="monitoring" element={<AdminMonitoring />} />
-                <Route path="ai-config" element={<AdminAIConfig />} />
                 <Route path="usuarios" element={<AdminUsers />} />
                 <Route path="configuracoes" element={<AdminSettings />} />
+                <Route path="ai-config" element={<AdminAIConfig />} />
+                <Route path="monitoring" element={<AdminMonitoring />} />
+                <Route path="subscriptions" element={<AdminSubscriptions />} />
               </Route>
-              
-              {/* Catch-all route */}
+
+              {/* Legacy routes for backward compatibility */}
+              <Route path="/index" element={<Index />} />
+
+              {/* 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </AuthProvider>
         </ErrorBoundary>
-      </TooltipProvider>
-    </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, BarChart3, Menu, LogOut, ShieldCheck } from "lucide-react";
+import { Users, FileText, History, Menu, LogOut, BarChart3, CreditCard } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -12,19 +12,15 @@ const AppLayout = () => {
   const { signOut, profile, isAdmin } = useAuth();
 
   const navigation = [
-    { name: "Painel", href: "/app/dashboard", icon: BarChart3 },
-    { name: "Gerar Anúncios", href: "/app/ad-generator", icon: PlusCircle },
-    { name: "Diagnosticar", href: "/app/ad-diagnosis", icon: Search },
-    { name: "Histórico", href: "/app/history", icon: BarChart3 },
+    { name: "Dashboard", href: "/app/dashboard", icon: BarChart3 },
+    { name: "Gerador", href: "/app/gerador", icon: FileText },
+    { name: "Diagnóstico", href: "/app/diagnostico", icon: Users },
+    { name: "Histórico", href: "/app/historico", icon: History },
+    { name: "Assinatura", href: "/app/assinatura", icon: CreditCard },
   ];
 
   const handleLogout = async () => {
-    console.log('User logging out');
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+    await signOut();
   };
 
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (
@@ -70,7 +66,10 @@ const AppLayout = () => {
                 </SheetContent>
               </Sheet>
               
-              <Link to="/app/dashboard" className="flex items-center">
+              <Link to="/app/dashboard" className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">OA</span>
+                </div>
                 <h1 className="text-xl font-bold text-blue-600">OtimizaAds</h1>
               </Link>
             </div>
@@ -82,13 +81,12 @@ const AppLayout = () => {
             <div className="flex items-center gap-4">
               {profile && (
                 <span className="text-sm text-gray-600 hidden sm:block">
-                  Olá, {profile.full_name || profile.email}
+                  {profile.full_name || profile.email}
                 </span>
               )}
               {isAdmin && (
                 <Link to="/admin/dashboard">
-                  <Button variant="outline" size="sm">
-                    <ShieldCheck className="h-4 w-4 mr-2" />
+                  <Button variant="ghost" size="sm">
                     Admin
                   </Button>
                 </Link>
