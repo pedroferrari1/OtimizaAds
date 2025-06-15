@@ -12,10 +12,10 @@ const AppLayout = () => {
   const { signOut, user } = useAuth();
 
   const navigation = [
-    { name: "Painel", href: "/dashboard", icon: BarChart3 },
-    { name: "Gerar Anúncios", href: "/gerador", icon: PlusCircle },
-    { name: "Diagnosticar", href: "/diagnostico", icon: Search },
-    { name: "Histórico", href: "/historico", icon: BarChart3 },
+    { name: "Painel", href: "/app/dashboard", icon: BarChart3 },
+    { name: "Gerar Anúncios", href: "/app/gerador", icon: PlusCircle },
+    { name: "Diagnosticar", href: "/app/diagnostico", icon: Search },
+    { name: "Histórico", href: "/app/historico", icon: BarChart3 },
   ];
 
   const handleLogout = async () => {
@@ -65,7 +65,7 @@ const AppLayout = () => {
                 </SheetContent>
               </Sheet>
               
-              <Link to="/dashboard" className="flex items-center">
+              <Link to="/app/dashboard" className="flex items-center">
                 <h1 className="text-xl font-bold text-blue-600">OtimizaAds</h1>
               </Link>
             </div>

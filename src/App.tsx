@@ -14,6 +14,7 @@ import AdGenerator from "./pages/AdGenerator";
 import AdDiagnosis from "./pages/AdDiagnosis";
 import History from "./pages/History";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
@@ -25,21 +26,24 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
+            {/* Public landing page */}
+            <Route path="/" element={<LandingPage />} />
+            
+            {/* Authentication routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Register />} />
             
-            {/* Protected routes */}
-            <Route path="/" element={
+            {/* Protected app routes */}
+            <Route path="/app" element={
               <ProtectedRoute>
                 <AppLayout />
               </ProtectedRoute>
             }>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/gerador" element={<AdGenerator />} />
-              <Route path="/diagnostico" element={<AdDiagnosis />} />
-              <Route path="/historico" element={<History />} />
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="gerador" element={<AdGenerator />} />
+              <Route path="diagnostico" element={<AdDiagnosis />} />
+              <Route path="historico" element={<History />} />
             </Route>
             
             {/* Catch-all route */}
