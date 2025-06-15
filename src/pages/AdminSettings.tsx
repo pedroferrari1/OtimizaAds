@@ -11,21 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, RefreshCw, Eye, EyeOff, Zap, Info } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
-interface NovitaConfig {
-  endpoint: string;
-  model: string;
-  api_key: string;
-  tokens_per_month: number;
-  timeout: number;
-  name: string;
-  temperature: number;
-  top_p: number;
-  frequency_penalty: number;
-  presence_penalty: number;
-  max_tokens: number;
-  stream: boolean;
-}
-
+// Remove the NovitaConfig and novita_config from the AppSettings type.
 interface AppSettings {
   free_plan_limit: {
     daily_ads: number;
@@ -38,8 +24,10 @@ interface AppSettings {
   api_limits: {
     novita_tokens_per_month: number;
   };
-  novita_config: NovitaConfig;
 }
+
+// Remove: interface NovitaConfig { ... }
+// Remove all NovitaAI config state/logic from component
 
 const AdminSettings = () => {
   const [settings, setSettings] = useState<AppSettings>({
@@ -54,56 +42,22 @@ const AdminSettings = () => {
     api_limits: {
       novita_tokens_per_month: 10000,
     },
-    // Novita config deixado aqui apenas para manter compatibilidade do objeto, mas NÃO será mais exibido no painel!
-    novita_config: {
-      endpoint: "",
-      model: "",
-      api_key: "",
-      tokens_per_month: 0,
-      timeout: 0,
-      name: "",
-      temperature: 0,
-      top_p: 0,
-      frequency_penalty: 0,
-      presence_penalty: 0,
-      max_tokens: 0,
-      stream: false,
-    },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [connectionStatus, setConnectionStatus<'unknown' | 'success' | 'error'>('unknown');
   const { toast } = useToast();
 
-  const novitaModels = [
-    "meta-llama/llama-3.1-8b-instruct",
-    "meta-llama/llama-3.1-70b-instruct",
-    "meta-llama/llama-3.1-405b-instruct",
-    "mistralai/mistral-7b-instruct-v0.3",
-    "mistralai/mixtral-8x7b-instruct-v0.1",
-    "mistralai/mixtral-8x22b-instruct-v0.1",
-    "anthropic/claude-3-haiku-20240307",
-    "anthropic/claude-3-sonnet-20240229",
-    "anthropic/claude-3-opus-20240229",
-    "qwen/qwen2.5-72b-instruct",
-    "google/gemma-2-9b-it",
-    "nvidia/llama-3.1-nemotron-70b-instruct",
-  ];
-
+  // Fetch only the relevant app settings
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from('app_settings')
         .select('key, value')
-        .in('key', ['free_plan_limit', 'features', 'api_limits', 'novita_config']);
+        .in('key', ['free_plan_limit', 'features', 'api_limits']);
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       if (data) {
         const settingsMap: any = {};
@@ -115,7 +69,6 @@ const AdminSettings = () => {
           free_plan_limit: settingsMap.free_plan_limit || settings.free_plan_limit,
           features: settingsMap.features || settings.features,
           api_limits: settingsMap.api_limits || settings.api_limits,
-          novita_config: settingsMap.novita_config || settings.novita_config,
         });
       }
     } catch (error) {
@@ -130,79 +83,11 @@ const AdminSettings = () => {
     }
   };
 
-  const testNovitaConnection = async () => {
-    if (!settings.novita_config.api_key || !settings.novita_config.endpoint) {
-      toast({
-        title: "Configuração Incompleta",
-        description: "Por favor, configure o endpoint e a chave da API antes de testar.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      setTesting(true);
-      setConnectionStatus('unknown');
-
-      // Fazer teste real da API Novita usando o endpoint correto
-      const response = await fetch(`${settings.novita_config.endpoint}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${settings.novita_config.api_key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: settings.novita_config.model,
-          messages: [
-            {
-              role: 'system',
-              content: 'Você é um assistente de teste.',
-              name: settings.novita_config.name,
-            },
-            {
-              role: 'user',
-              content: 'Teste de conexão',
-            }
-          ],
-          max_tokens: 10,
-          temperature: 0.1,
-        }),
-        signal: AbortSignal.timeout(settings.novita_config.timeout),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.choices && data.choices.length > 0) {
-          setConnectionStatus('success');
-          toast({
-            title: "Conexão Bem-sucedida",
-            description: "A API da Novita está respondendo corretamente.",
-          });
-        } else {
-          throw new Error('Resposta inválida da API');
-        }
-      } else {
-        const errorData = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorData}`);
-      }
-    } catch (error) {
-      console.error('Erro ao testar conexão:', error);
-      setConnectionStatus('error');
-      toast({
-        title: "Falha na Conexão",
-        description: `Não foi possível conectar com a API da Novita: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
-        variant: "destructive",
-      });
-    } finally {
-      setTesting(false);
-    }
-  };
-
+  // Save only the relevant app settings
   const saveSettings = async () => {
     try {
       setSaving(true);
 
-      // Converter os objetos para o tipo Json antes de salvar
       const updates = [
         {
           key: 'free_plan_limit',
@@ -219,11 +104,6 @@ const AdminSettings = () => {
           value: settings.api_limits as Json,
           description: 'Limites de API externa',
         },
-        {
-          key: 'novita_config',
-          value: settings.novita_config as unknown as Json,
-          description: 'Configurações da integração com Novita AI',
-        },
       ];
 
       for (const update of updates) {
@@ -238,12 +118,9 @@ const AdminSettings = () => {
             onConflict: 'key'
           });
 
-        if (error) {
-          throw error;
-        }
+        if (error) throw error;
       }
 
-      // Log da ação
       await supabase.from('audit_logs').insert({
         admin_user_id: (await supabase.auth.getUser()).data.user?.id,
         action: 'settings_updated',
@@ -264,11 +141,6 @@ const AdminSettings = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const maskApiKey = (key: string) => {
-    if (!key || key.length < 8) return key;
-    return key.slice(0, 4) + '•'.repeat(key.length - 8) + key.slice(-4);
   };
 
   useEffect(() => {
