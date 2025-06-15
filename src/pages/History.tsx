@@ -33,9 +33,16 @@ const History = () => {
   const fetchHistoryItems = async () => {
     try {
       setLoading(true);
+      if (!user) {
+        setHistoryItems([]);
+        setLoading(false);
+        return;
+      }
+      // Filtrar apenas itens do usuário logado
       const { data, error } = await supabase
         .from('history_items')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
