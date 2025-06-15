@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +30,17 @@ const modelSchema = z.object({
 });
 
 type ModelFormData = z.infer<typeof modelSchema>;
+
+// Define the type for database insert - ensuring required fields are not optional
+type ModelInsertData = {
+  model_name: string;
+  provider: string;
+  model_type: "chat" | "completion";
+  cost_per_token?: number;
+  max_tokens?: number;
+  supports_streaming?: boolean;
+  is_active?: boolean;
+};
 
 export const ModelManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,9 +76,20 @@ export const ModelManager = () => {
 
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      // Ensure all required fields are present and convert to the correct insert type
+      const insertData: ModelInsertData = {
+        model_name: data.model_name,
+        provider: data.provider,
+        model_type: data.model_type,
+        cost_per_token: data.cost_per_token,
+        max_tokens: data.max_tokens,
+        supports_streaming: data.supports_streaming,
+        is_active: data.is_active,
+      };
+
       const { error } = await supabase
         .from("ai_models")
-        .insert(data);
+        .insert(insertData);
 
       if (error) throw error;
     },
@@ -92,9 +113,19 @@ export const ModelManager = () => {
 
   const updateModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      const updateData: ModelInsertData = {
+        model_name: data.model_name,
+        provider: data.provider,
+        model_type: data.model_type,
+        cost_per_token: data.cost_per_token,
+        max_tokens: data.max_tokens,
+        supports_streaming: data.supports_streaming,
+        is_active: data.is_active,
+      };
+
       const { error } = await supabase
         .from("ai_models")
-        .update(data)
+        .update(updateData)
         .eq("id", editingModel.id);
 
       if (error) throw error;

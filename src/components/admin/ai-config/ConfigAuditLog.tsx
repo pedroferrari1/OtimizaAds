@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,14 +13,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+// Define type for audit log with admin profile
+type AuditLogWithProfile = {
+  id: string;
+  action: string;
+  admin_user_id: string | null;
+  change_reason: string | null;
+  config_id: string | null;
+  new_values: any;
+  old_values: any;
+  timestamp: string;
+  ai_configurations?: {
+    config_level: string;
+    level_identifier: string;
+  } | null;
+  admin_profile?: {
+    full_name: string | null;
+    email: string;
+  } | null;
+};
+
 export const ConfigAuditLog = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [actionFilter, setActionFilter] = useState("all");
-  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [selectedLog, setSelectedLog] = useState<AuditLogWithProfile | null>(null);
 
   const { data: auditLogs, isLoading, refetch } = useQuery({
     queryKey: ["ai-config-history", searchTerm, actionFilter],
-    queryFn: async () => {
+    queryFn: async (): Promise<AuditLogWithProfile[]> => {
       let query = supabase
         .from("ai_config_history")
         .select(`
