@@ -528,6 +528,42 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          currency: string
+          features: Json
+          id: string
+          is_active: boolean
+          name: string
+          price_monthly: number
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          price_monthly: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_monthly?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_health_metrics: {
         Row: {
           id: string
@@ -576,11 +612,99 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_tracking: {
+        Row: {
+          count: number
+          created_at: string
+          feature_type: string
+          id: string
+          period_end: string
+          period_start: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          feature_type: string
+          id?: string
+          period_end: string
+          period_start: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          feature_type?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_id: string
+          status: string
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      check_feature_usage: {
+        Args: { user_uuid: string; feature: string }
+        Returns: {
+          current_usage: number
+          limit_value: number
+          can_use: boolean
+        }[]
+      }
       get_prompt_versions: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -592,6 +716,15 @@ export type Database = {
           is_active: boolean
           created_at: string
           created_by: string
+        }[]
+      }
+      get_user_subscription: {
+        Args: { user_uuid: string }
+        Returns: {
+          plan_name: string
+          features: Json
+          status: string
+          current_period_end: string
         }[]
       }
       is_admin: {

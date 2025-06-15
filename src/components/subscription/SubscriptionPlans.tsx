@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, Users } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
+import { SubscriptionPlan } from "@/types/subscription";
 
 const SubscriptionPlans = () => {
   const { plans, userSubscription, createCheckoutSession, manageSubscription } = useSubscription();
@@ -17,8 +18,8 @@ const SubscriptionPlans = () => {
     }).format(price / 100);
   };
 
-  const getFeatureList = (features: any) => {
-    const featureMap = {
+  const getFeatureList = (features: Record<string, any>) => {
+    const featureMap: Record<string, (val: any) => string | null> = {
       generations: (val: number) => val === -1 ? 'Gerações ilimitadas' : `${val} gerações de anúncios`,
       diagnostics: (val: number) => val === -1 ? 'Diagnósticos ilimitados' : `${val} diagnósticos`,
       models: (val: string) => val === 'all' ? 'Todos os modelos' : 'Modelos básicos',
@@ -34,40 +35,39 @@ const SubscriptionPlans = () => {
       dedicated_support: (val: boolean) => val ? 'Suporte dedicado' : null,
       custom_training: (val: boolean) => val ? 'Treinamento personalizado' : null,
       support: (val: string) => {
-        const supportMap = {
+        const supportMap: Record<string, string> = {
           email: 'Suporte por email',
           priority: 'Suporte prioritário',
           dedicated: 'Suporte dedicado'
         };
-        return supportMap[val as keyof typeof supportMap] || `Suporte ${val}`;
+        return supportMap[val] || `Suporte ${val}`;
       }
     };
 
     return Object.entries(features)
       .map(([key, value]) => {
-        const formatter = featureMap[key as keyof typeof featureMap];
+        const formatter = featureMap[key];
         if (formatter && value) {
-          return formatter(value as any);
+          return formatter(value);
         }
         return null;
       })
-      .filter(Boolean);
+      .filter(Boolean) as string[];
   };
 
   const isCurrentPlan = (planId: string) => {
     return userSubscription?.plan_id === planId;
   };
 
-  const getButtonText = (plan: any) => {
+  const getButtonText = (plan: SubscriptionPlan) => {
     if (!user) return "Faça Login";
     if (isCurrentPlan(plan.id)) return "Plano Atual";
     if (plan.name === "Gratuito") return "Começar Grátis";
     return "Escolher Plano";
   };
 
-  const handlePlanAction = (plan: any) => {
+  const handlePlanAction = (plan: SubscriptionPlan) => {
     if (!user) {
-      // Redirect to login
       window.location.href = "/login";
       return;
     }

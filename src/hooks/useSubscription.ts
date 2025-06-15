@@ -3,32 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-export interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price_monthly: number;
-  currency: string;
-  stripe_price_id: string | null;
-  features: any;
-  is_active: boolean;
-}
-
-export interface UserSubscription {
-  id: string;
-  plan_id: string;
-  status: string;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-  plan: SubscriptionPlan;
-}
-
-export interface FeatureUsage {
-  current_usage: number;
-  limit_value: number;
-  can_use: boolean;
-}
+import { SubscriptionPlan, UserSubscription, FeatureUsage } from '@/types/subscription';
 
 export const useSubscription = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);

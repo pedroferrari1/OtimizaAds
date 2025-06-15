@@ -6,31 +6,14 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, DollarSign, TrendingUp, Calendar, Search, Filter } from "lucide-react";
+import { Users, DollarSign, TrendingUp, Calendar, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import PlanManager from "@/components/admin/subscription/PlanManager";
-
-interface UserSubscription {
-  id: string;
-  user_id: string;
-  status: string;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  cancel_at_period_end: boolean;
-  created_at: string;
-  plan: {
-    name: string;
-    price_monthly: number;
-  };
-  profile: {
-    email: string;
-    full_name: string | null;
-  };
-}
+import { UserSubscriptionWithProfile } from "@/types/subscription";
 
 const AdminSubscriptions = () => {
-  const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
+  const [subscriptions, setSubscriptions] = useState<UserSubscriptionWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,14 +51,13 @@ const AdminSubscriptions = () => {
     }
   };
 
-  const calculateMetrics = (subs: UserSubscription[]) => {
+  const calculateMetrics = (subs: UserSubscriptionWithProfile[]) => {
     const totalSubscriptions = subs.length;
     const activeSubscriptions = subs.filter(s => s.status === 'active').length;
     const monthlyRevenue = subs
       .filter(s => s.status === 'active')
       .reduce((sum, s) => sum + (s.plan?.price_monthly || 0), 0) / 100;
 
-    // Simple churn rate calculation (cancelled vs total)
     const cancelledSubs = subs.filter(s => s.status === 'cancelled').length;
     const churnRate = totalSubscriptions > 0 ? (cancelledSubs / totalSubscriptions) * 100 : 0;
 

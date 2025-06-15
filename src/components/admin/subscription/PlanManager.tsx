@@ -7,21 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Settings, Users } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-interface SubscriptionPlan {
-  id: string;
-  name: string;
-  price_monthly: number;
-  currency: string;
-  stripe_price_id: string | null;
-  features: any;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { SubscriptionPlan } from "@/types/subscription";
 
 const PlanManager = () => {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -70,7 +59,7 @@ const PlanManager = () => {
       } else {
         const { error } = await supabase
           .from('subscription_plans')
-          .insert(planData);
+          .insert(planData as any);
 
         if (error) throw error;
         toast({
@@ -210,8 +199,8 @@ const PlanManager = () => {
                       <div key={key} className="text-sm text-gray-600">
                         <span className="capitalize">{key.replace('_', ' ')}</span>: {
                           typeof value === 'boolean' ? (value ? 'Sim' : 'Não') :
-                          typeof value === 'number' ? (value === -1 ? 'Ilimitado' : value) :
-                          value
+                          typeof value === 'number' ? (value === -1 ? 'Ilimitado' : String(value)) :
+                          String(value)
                         }
                       </div>
                     ))}
