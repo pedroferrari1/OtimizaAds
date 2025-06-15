@@ -6,13 +6,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
+import AdminLayout from "./components/admin/AdminLayout";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AdGenerator from "./pages/AdGenerator";
 import AdDiagnosis from "./pages/AdDiagnosis";
 import History from "./pages/History";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -44,6 +49,18 @@ const App = () => (
               <Route path="gerador" element={<AdGenerator />} />
               <Route path="diagnostico" element={<AdDiagnosis />} />
               <Route path="historico" element={<History />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route path="/admin" element={
+              <AdminProtectedRoute>
+                <AdminLayout />
+              </AdminProtectedRoute>
+            }>
+              <Route index element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="usuarios" element={<AdminUsers />} />
+              <Route path="configuracoes" element={<AdminSettings />} />
             </Route>
             
             {/* Catch-all route */}

@@ -2,20 +2,19 @@
 import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, BarChart3, Menu, LogOut, ShieldCheck } from "lucide-react";
+import { Users, BarChart3, Settings, Menu, LogOut, ShieldCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 
-const AppLayout = () => {
+const AdminLayout = () => {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { signOut, profile, isAdmin } = useAuth();
+  const { signOut, profile } = useAuth();
 
   const navigation = [
-    { name: "Painel", href: "/app/dashboard", icon: BarChart3 },
-    { name: "Gerar Anúncios", href: "/app/gerador", icon: PlusCircle },
-    { name: "Diagnosticar", href: "/app/diagnostico", icon: Search },
-    { name: "Histórico", href: "/app/historico", icon: BarChart3 },
+    { name: "Dashboard", href: "/admin/dashboard", icon: BarChart3 },
+    { name: "Usuários", href: "/admin/usuarios", icon: Users },
+    { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
   ];
 
   const handleLogout = async () => {
@@ -65,8 +64,9 @@ const AppLayout = () => {
                 </SheetContent>
               </Sheet>
               
-              <Link to="/app/dashboard" className="flex items-center">
-                <h1 className="text-xl font-bold text-blue-600">OtimizaAds</h1>
+              <Link to="/admin/dashboard" className="flex items-center gap-2">
+                <ShieldCheck className="h-6 w-6 text-blue-600" />
+                <h1 className="text-xl font-bold text-blue-600">Admin OtimizaAds</h1>
               </Link>
             </div>
 
@@ -77,17 +77,14 @@ const AppLayout = () => {
             <div className="flex items-center gap-4">
               {profile && (
                 <span className="text-sm text-gray-600 hidden sm:block">
-                  Olá, {profile.full_name || profile.email}
+                  Admin: {profile.full_name || profile.email}
                 </span>
               )}
-              {isAdmin && (
-                <Link to="/admin/dashboard">
-                  <Button variant="outline" size="sm">
-                    <ShieldCheck className="h-4 w-4 mr-2" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
+              <Link to="/app/dashboard">
+                <Button variant="ghost" size="sm">
+                  Ver App
+                </Button>
+              </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -105,4 +102,4 @@ const AppLayout = () => {
   );
 };
 
-export default AppLayout;
+export default AdminLayout;
