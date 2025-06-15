@@ -406,6 +406,77 @@ export type Database = {
         }
         Relationships: []
       }
+      prompt_test_results: {
+        Row: {
+          actual_output: string | null
+          created_at: string
+          expected_output: string | null
+          id: string
+          prompt_version_id: string
+          status: string
+          test_input: string
+        }
+        Insert: {
+          actual_output?: string | null
+          created_at?: string
+          expected_output?: string | null
+          id?: string
+          prompt_version_id: string
+          status: string
+          test_input: string
+        }
+        Update: {
+          actual_output?: string | null
+          created_at?: string
+          expected_output?: string | null
+          id?: string
+          prompt_version_id?: string
+          status?: string
+          test_input?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompt_test_results_prompt_version_id_fkey"
+            columns: ["prompt_version_id"]
+            isOneToOne: false
+            referencedRelation: "prompt_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prompt_versions: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          prompt_name: string
+          version: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_name: string
+          version: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_name?: string
+          version?: string
+        }
+        Relationships: []
+      }
       system_health_metrics: {
         Row: {
           id: string

@@ -9,18 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   Plus, 
   Edit, 
-  Trash2, 
   Save, 
   Play, 
-  History, 
   Copy,
-  FileText,
   TestTube,
   GitBranch,
   Clock
@@ -30,7 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-type PromptVersion = {
+// Temporary interfaces until Supabase types are regenerated
+interface PromptVersion {
   id: string;
   prompt_name: string;
   version: string;
@@ -39,10 +35,9 @@ type PromptVersion = {
   is_active: boolean;
   created_at: string;
   created_by: string;
-  test_results?: any;
-};
+}
 
-type TestResult = {
+interface TestResult {
   id: string;
   prompt_version_id: string;
   test_input: string;
@@ -50,7 +45,7 @@ type TestResult = {
   actual_output?: string;
   status: 'passed' | 'failed' | 'pending';
   created_at: string;
-};
+}
 
 export const PromptEditor = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -72,14 +67,19 @@ export const PromptEditor = () => {
     description: "",
   });
 
-  // Fetch prompts
+  // Fetch prompts using raw SQL query
   const { data: prompts, isLoading } = useQuery({
     queryKey: ["prompts"],
     queryFn: async (): Promise<PromptVersion[]> => {
       const { data, error } = await supabase
-        .from("prompt_versions")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .rpc('get_prompt_versions') // We'll create this function or use direct query
+        .catch(async () => {
+          // Fallback to direct query if RPC doesn't exist
+          return await supabase
+            .from("prompt_versions" as any)
+            .select("*")
+            .order("created_at", { ascending: false });
+        });
 
       if (error) throw error;
       return data || [];
@@ -93,7 +93,7 @@ export const PromptEditor = () => {
       if (!selectedPrompt?.id) return [];
       
       const { data, error } = await supabase
-        .from("prompt_test_results")
+        .from("prompt_test_results" as any)
         .select("*")
         .eq("prompt_version_id", selectedPrompt.id)
         .order("created_at", { ascending: false });
@@ -108,9 +108,12 @@ export const PromptEditor = () => {
   const createPromptMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       const { error } = await supabase
-        .from("prompt_versions")
+        .from("prompt_versions" as any)
         .insert({
-          ...data,
+          prompt_name: data.prompt_name,
+          version: data.version,
+          content: data.content,
+          description: data.description,
           is_active: true,
           created_by: "admin", // TODO: Get from auth context
         });
@@ -142,12 +145,15 @@ export const PromptEditor = () => {
 
   // Update prompt mutation
   const updatePromptMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
+    mutationFn: async (data: { content: string; description?: string }) => {
       if (!editingPrompt?.id) return;
       
       const { error } = await supabase
-        .from("prompt_versions")
-        .update(data)
+        .from("prompt_versions" as any)
+        .update({
+          content: data.content,
+          description: data.description,
+        })
         .eq("id", editingPrompt.id);
 
       if (error) throw error;
@@ -179,7 +185,7 @@ export const PromptEditor = () => {
       const status = data.expected && data.expected === mockOutput ? 'passed' : 'failed';
 
       const { error } = await supabase
-        .from("prompt_test_results")
+        .from("prompt_test_results" as any)
         .insert({
           prompt_version_id: selectedPrompt.id,
           test_input: data.input,
@@ -216,8 +222,6 @@ export const PromptEditor = () => {
   const handleUpdatePrompt = () => {
     if (editingPrompt) {
       updatePromptMutation.mutate({
-        prompt_name: editingPrompt.prompt_name,
-        version: editingPrompt.version,
         content: editingPrompt.content,
         description: editingPrompt.description,
       });
