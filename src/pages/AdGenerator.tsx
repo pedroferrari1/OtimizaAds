@@ -24,6 +24,9 @@ const AdGenerator = () => {
     if (!user) return;
 
     try {
+      // Convert data to Json compatible format
+      const jsonInputData = JSON.parse(JSON.stringify(inputData));
+      
       const { error } = await supabase
         .from('history_items')
         .insert({
@@ -31,11 +34,16 @@ const AdGenerator = () => {
           type: 'generation',
           title: `Anúncios para ${inputData.productName}`,
           content: generatedAds.join('\n\n---\n\n'),
-          input_data: inputData
+          input_data: jsonInputData
         });
 
       if (error) {
         console.error('Error saving to history:', error);
+        toast({
+          title: "Erro ao salvar",
+          description: "Não foi possível salvar no histórico.",
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Salvo no histórico!",
@@ -44,6 +52,11 @@ const AdGenerator = () => {
       }
     } catch (error) {
       console.error('Error saving to history:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar no histórico.",
+        variant: "destructive",
+      });
     }
   };
 

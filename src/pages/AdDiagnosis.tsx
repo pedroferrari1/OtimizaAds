@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,6 +31,13 @@ const AdDiagnosis = () => {
     try {
       const content = `TEXTO ORIGINAL:\n${originalText}\n\n---\n\nRELATÓRIO DE DIAGNÓSTICO:\n${JSON.stringify(diagnosisReport, null, 2)}\n\n---\n\nVERSÕES OTIMIZADAS:\n${optimizedAds.join('\n\n')}`;
       
+      // Convert data to Json compatible format
+      const inputData = JSON.parse(JSON.stringify({
+        originalText,
+        diagnosisReport,
+        optimizedAds
+      }));
+      
       const { error } = await supabase
         .from('history_items')
         .insert({
@@ -39,15 +45,16 @@ const AdDiagnosis = () => {
           type: 'diagnosis',
           title: `Diagnóstico: ${originalText.substring(0, 50)}...`,
           content: content,
-          input_data: {
-            originalText,
-            diagnosisReport,
-            optimizedAds
-          }
+          input_data: inputData
         });
 
       if (error) {
         console.error('Error saving to history:', error);
+        toast({
+          title: "Erro ao salvar",
+          description: "Não foi possível salvar no histórico.",
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Salvo no histórico!",
@@ -56,6 +63,11 @@ const AdDiagnosis = () => {
       }
     } catch (error) {
       console.error('Error saving to history:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar no histórico.",
+        variant: "destructive",
+      });
     }
   };
 
