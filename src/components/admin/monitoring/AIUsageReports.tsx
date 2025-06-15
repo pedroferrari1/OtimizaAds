@@ -25,7 +25,8 @@ type AIUsageMetric = Tables<"ai_usage_metrics">;
 export const AIUsageReports = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [timeRange, setTimeRange] = useState("7d");
-  const [selectedModel, setSelectedModel] = useState("");
+  // Use "all" como valor inicial para todos os modelos
+  const [selectedModel, setSelectedModel] = useState("all");
 
   // Calculate date range based on selection
   const getDateRange = () => {
@@ -51,7 +52,8 @@ export const AIUsageReports = () => {
         .lte("timestamp", end.toISOString())
         .order("timestamp", { ascending: false });
 
-      if (selectedModel) {
+      // Só filtra modelo se não for "all"
+      if (selectedModel && selectedModel !== "all") {
         query = query.eq("model_name", selectedModel);
       }
 
@@ -113,7 +115,16 @@ export const AIUsageReports = () => {
     if (!usageMetrics) return;
 
     const csvContent = [
-      ["Timestamp", "Modelo", "Serviço", "Tokens Input", "Tokens Output", "Custo", "Tempo (ms)", "Sucesso"].join(","),
+      [
+        "Timestamp",
+        "Modelo",
+        "Serviço",
+        "Tokens Input",
+        "Tokens Output",
+        "Custo",
+        "Tempo (ms)",
+        "Sucesso"
+      ].join(","),
       ...usageMetrics.map(metric => [
         metric.timestamp,
         metric.model_name,
@@ -130,7 +141,9 @@ export const AIUsageReports = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ai-usage-report-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
+    // Inclui "Todos os modelos" caso selectedModel seja "all"
+    let labelModel = selectedModel === "all" ? "todos-modelos" : selectedModel;
+    a.download = `ai-usage-report-${labelModel}-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -162,7 +175,7 @@ export const AIUsageReports = () => {
                 <SelectValue placeholder="Todos os modelos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os modelos</SelectItem>
+                <SelectItem value="all">Todos os modelos</SelectItem>
                 {models.map(model => (
                   <SelectItem key={model} value={model}>{model}</SelectItem>
                 ))}
