@@ -1,0 +1,25 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/" # Caminho onde está o package.json
+    schedule:
+      interval: "weekly" # Atualizações semanais
+      day: "monday"
+      time: "08:00"
+    open-pull-requests-limit: 5
+    assignees:
+      - "pedroferrari1"
+    reviewers:
+      - "pedroferrari1"
+    labels:
+      - "dependencies"
+      - "dependabot"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    rebase-strategy: "auto"
+    ignore:
+      - dependency-name: "typescript"
+        versions: ["<5.0.0"]
+
+# Se precisar configurar outros gerenciadores de pacotes ou diretórios, adicione mais blocos "updates" seguindo o mesmo padrão.
