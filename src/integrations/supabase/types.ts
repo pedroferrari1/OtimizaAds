@@ -108,6 +108,10 @@ export type Database = {
       }
       ai_models: {
         Row: {
+          api_endpoint: string | null
+          api_version: string | null
+          auth_type: string | null
+          configuration_json: Json | null
           cost_per_token: number | null
           created_at: string
           id: string
@@ -119,6 +123,10 @@ export type Database = {
           supports_streaming: boolean | null
         }
         Insert: {
+          api_endpoint?: string | null
+          api_version?: string | null
+          auth_type?: string | null
+          configuration_json?: Json | null
           cost_per_token?: number | null
           created_at?: string
           id?: string
@@ -130,6 +138,10 @@ export type Database = {
           supports_streaming?: boolean | null
         }
         Update: {
+          api_endpoint?: string | null
+          api_version?: string | null
+          auth_type?: string | null
+          configuration_json?: Json | null
           cost_per_token?: number | null
           created_at?: string
           id?: string
@@ -477,6 +489,45 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_configurations: {
+        Row: {
+          api_endpoint: string | null
+          api_key_name: string | null
+          auth_type: string | null
+          configuration: Json | null
+          created_at: string
+          display_name: string
+          id: string
+          is_active: boolean | null
+          provider_name: string
+          updated_at: string
+        }
+        Insert: {
+          api_endpoint?: string | null
+          api_key_name?: string | null
+          auth_type?: string | null
+          configuration?: Json | null
+          created_at?: string
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          provider_name: string
+          updated_at?: string
+        }
+        Update: {
+          api_endpoint?: string | null
+          api_key_name?: string | null
+          auth_type?: string | null
+          configuration?: Json | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          provider_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       system_health_metrics: {
         Row: {
           id: string
@@ -530,6 +581,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_prompt_versions: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          prompt_name: string
+          version: string
+          content: string
+          description: string
+          is_active: boolean
+          created_at: string
+          created_by: string
+        }[]
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
