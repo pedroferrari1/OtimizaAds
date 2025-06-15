@@ -17,13 +17,20 @@ interface DiagnosisReport {
 }
 
 const AdDiagnosis = () => {
-  const [adText, setAdText] = useState("");
+  const [adText, setAdText] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [diagnosisReport, setDiagnosisReport] = useState<DiagnosisReport | null>(null);
   const [optimizedAds, setOptimizedAds] = useState<string[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    console.log("Text change event triggered:", e.target.value);
+    const newValue = e.target.value;
+    setAdText(newValue);
+    console.log("Updated adText state:", newValue);
+  };
 
   const saveToHistory = async (originalText: string, diagnosisReport: DiagnosisReport, optimizedAds: string[]) => {
     if (!user) return;
@@ -73,6 +80,8 @@ const AdDiagnosis = () => {
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Analyzing with text:", adText);
+    
     if (!adText.trim()) {
       toast({
         title: "Texto obrigatório",
@@ -195,12 +204,22 @@ const AdDiagnosis = () => {
                 <Label htmlFor="adText">Texto do Anúncio</Label>
                 <Textarea
                   id="adText"
+                  name="adText"
                   placeholder="Cole aqui o texto completo do seu anúncio..."
                   value={adText}
-                  onChange={(e) => setAdText(e.target.value)}
+                  onChange={handleTextChange}
+                  onInput={handleTextChange}
                   rows={8}
-                  className="min-h-[200px] resize-none"
+                  className="min-h-[200px] resize-none w-full"
+                  style={{ resize: 'none' }}
+                  readOnly={false}
+                  disabled={false}
+                  autoComplete="off"
+                  spellCheck={false}
                 />
+                <div className="text-xs text-gray-500">
+                  Caracteres digitados: {adText.length}
+                </div>
               </div>
               
               <Button type="submit" className="w-full" disabled={isAnalyzing || !adText.trim()}>
