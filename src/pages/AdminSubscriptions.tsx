@@ -31,7 +31,7 @@ const AdminSubscriptions = () => {
         .from('user_subscriptions')
         .select(`
           *,
-          plan:subscription_plans(name, price_monthly),
+          plan:subscription_plans(*),
           profile:profiles(email, full_name)
         `)
         .order('created_at', { ascending: false });
@@ -56,7 +56,7 @@ const AdminSubscriptions = () => {
     const activeSubscriptions = subs.filter(s => s.status === 'active').length;
     const monthlyRevenue = subs
       .filter(s => s.status === 'active')
-      .reduce((sum, s) => sum + (s.plan?.price_monthly || 0), 0) / 100;
+      .reduce((sum, s) => sum + (s.plan?.price_monthly ||0), 0) / 100;
 
     const cancelledSubs = subs.filter(s => s.status === 'cancelled').length;
     const churnRate = totalSubscriptions > 0 ? (cancelledSubs / totalSubscriptions) * 100 : 0;

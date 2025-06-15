@@ -24,14 +24,14 @@ export type UserSubscription = {
   cancel_at_period_end: boolean;
   created_at: string;
   updated_at: string;
-  plan: SubscriptionPlan;
+  plan: SubscriptionPlan | null;
 };
 
 export type UserSubscriptionWithProfile = UserSubscription & {
   profile: {
     email: string;
     full_name: string | null;
-  };
+  } | null;
 };
 
 export type FeatureUsage = {
