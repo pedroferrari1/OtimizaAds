@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,13 +31,23 @@ const AdminSubscriptions = () => {
         .select(`
           *,
           plan:subscription_plans(*),
-          profile:profiles(email, full_name)
+          profiles!left(email, full_name)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setSubscriptions(data || []);
-      calculateMetrics(data || []);
+      
+      // Transform the data to match our types
+      const transformedData = (data || []).map(item => ({
+        ...item,
+        profile: item.profiles ? {
+          email: item.profiles.email,
+          full_name: item.profiles.full_name
+        } : null
+      })) as UserSubscriptionWithProfile[];
+      
+      setSubscriptions(transformedData);
+      calculateMetrics(transformedData);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
       toast({
@@ -56,7 +65,7 @@ const AdminSubscriptions = () => {
     const activeSubscriptions = subs.filter(s => s.status === 'active').length;
     const monthlyRevenue = subs
       .filter(s => s.status === 'active')
-      .reduce((sum, s) => sum + (s.plan?.price_monthly ||0), 0) / 100;
+      .reduce((sum, s) => sum + (s.plan?.price_monthly || 0), 0) / 100;
 
     const cancelledSubs = subs.filter(s => s.status === 'cancelled').length;
     const churnRate = totalSubscriptions > 0 ? (cancelledSubs / totalSubscriptions) * 100 : 0;
