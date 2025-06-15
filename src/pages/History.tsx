@@ -1,20 +1,26 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, Calendar, Copy, Trash2 } from "lucide-react";
+
+import { useState, useEffect, useMemo } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
+import HistoryCard from "@/components/history/HistoryCard";
+import HistoryFilters from "@/components/history/HistoryFilters";
+import HistoryModal from "@/components/history/HistoryModal";
+import { Search } from "lucide-react";
 
 type HistoryItem = Tables<'history_items'>;
 
 const History = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -49,10 +55,30 @@ const History = () => {
     }
   };
 
-  const filteredItems = historyItems.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAndSortedItems = useMemo(() => {
+    let filtered = historyItems.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.content.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === "all" || item.type === typeFilter;
+      
+      return matchesSearch && matchesType;
+    });
+
+    // Sort items
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "title":
+          return a.title.localeCompare(b.title);
+        case "newest":
+        default:
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+
+    return filtered;
+  }, [historyItems, searchTerm, typeFilter, sortBy]);
 
   const copyToClipboard = async (content: string) => {
     try {
@@ -71,6 +97,10 @@ const History = () => {
   };
 
   const deleteItem = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este item?")) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('history_items')
@@ -99,12 +129,9 @@ const History = () => {
     }
   };
 
-  const getTypeLabel = (type: string) => {
-    return type === "generation" ? "Geração" : "Diagnóstico";
-  };
-
-  const getTypeBadgeVariant = (type: string) => {
-    return type === "generation" ? "default" : "secondary";
+  const viewItem = (item: HistoryItem) => {
+    setSelectedItem(item);
+    setModalOpen(true);
   };
 
   if (loading) {
@@ -130,61 +157,33 @@ const History = () => {
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Buscar no histórico..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </div>
+      <HistoryFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        typeFilter={typeFilter}
+        onTypeFilterChange={setTypeFilter}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        totalItems={historyItems.length}
+        filteredItems={filteredAndSortedItems.length}
+      />
 
-      {filteredItems.length > 0 ? (
-        <div className="space-y-4">
-          {filteredItems.map((item) => (
-            <Card key={item.id} className="hover:shadow-md transition-shadow">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">{item.title}</CardTitle>
-                      <Badge variant={getTypeBadgeVariant(item.type)}>
-                        {getTypeLabel(item.type)}
-                      </Badge>
-                    </div>
-                    <CardDescription className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(item.created_at).toLocaleDateString('pt-BR')}
-                    </CardDescription>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyToClipboard(item.content)}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteItem(item.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 text-sm line-clamp-3">
-                  {item.content}
-                </p>
-              </CardContent>
-            </Card>
+      {filteredAndSortedItems.length > 0 ? (
+        <div className={
+          viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" 
+            : "space-y-4"
+        }>
+          {filteredAndSortedItems.map((item) => (
+            <HistoryCard
+              key={item.id}
+              item={item}
+              onCopy={copyToClipboard}
+              onDelete={deleteItem}
+              onView={viewItem}
+            />
           ))}
         </div>
       ) : (
@@ -194,8 +193,8 @@ const History = () => {
               <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">Nenhum item encontrado</h3>
               <p className="text-sm">
-                {searchTerm ? 
-                  "Tente ajustar os termos da busca" : 
+                {searchTerm || typeFilter !== "all" ? 
+                  "Tente ajustar os filtros de busca" : 
                   "Você ainda não tem itens no histórico. Comece gerando ou analisando anúncios!"
                 }
               </p>
@@ -203,6 +202,12 @@ const History = () => {
           </CardContent>
         </Card>
       )}
+
+      <HistoryModal
+        item={selectedItem}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+      />
     </div>
   );
 };
