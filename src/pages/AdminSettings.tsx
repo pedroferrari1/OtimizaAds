@@ -177,7 +177,7 @@ const AdminSettings = () => {
         },
         {
           key: 'novita_config',
-          value: settings.novita_config as Json,
+          value: settings.novita_config as unknown as Json,
           description: 'Configurações da integração com Novita AI',
         },
       ];
