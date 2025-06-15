@@ -31,7 +31,7 @@ const AdminSubscriptions = () => {
         .select(`
           *,
           plan:subscription_plans(*),
-          profiles!left(email, full_name)
+          profiles(email, full_name)
         `)
         .order('created_at', { ascending: false });
 
