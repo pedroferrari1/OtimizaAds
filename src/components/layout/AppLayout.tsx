@@ -13,14 +13,18 @@ const AppLayout = () => {
 
   const navigation = [
     { name: "Painel", href: "/app/dashboard", icon: BarChart3 },
-    { name: "Gerar Anúncios", href: "/app/gerador", icon: PlusCircle },
-    { name: "Diagnosticar", href: "/app/diagnostico", icon: Search },
-    { name: "Histórico", href: "/app/historico", icon: BarChart3 },
+    { name: "Gerar Anúncios", href: "/app/ad-generator", icon: PlusCircle },
+    { name: "Diagnosticar", href: "/app/ad-diagnosis", icon: Search },
+    { name: "Histórico", href: "/app/history", icon: BarChart3 },
   ];
 
   const handleLogout = async () => {
     console.log('User logging out');
-    await signOut();
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (

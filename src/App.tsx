@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import AdminLayout from "./components/admin/AdminLayout";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -21,52 +22,65 @@ import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public landing page */}
-            <Route path="/" element={<LandingPage />} />
-            
-            {/* Authentication routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Register />} />
-            
-            {/* Protected app routes */}
-            <Route path="/app" element={
-              <ProtectedRoute>
-                <AppLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="gerador" element={<AdGenerator />} />
-              <Route path="diagnostico" element={<AdDiagnosis />} />
-              <Route path="historico" element={<History />} />
-            </Route>
+        <ErrorBoundary>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public landing page */}
+              <Route path="/" element={<LandingPage />} />
+              
+              {/* Authentication routes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Register />} />
+              
+              {/* Protected app routes */}
+              <Route path="/app" element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="ad-generator" element={<AdGenerator />} />
+                <Route path="ad-diagnosis" element={<AdDiagnosis />} />
+                <Route path="history" element={<History />} />
+                {/* Maintain backward compatibility with old routes */}
+                <Route path="gerador" element={<Navigate to="/app/ad-generator" replace />} />
+                <Route path="diagnostico" element={<Navigate to="/app/ad-diagnosis" replace />} />
+                <Route path="historico" element={<Navigate to="/app/history" replace />} />
+              </Route>
 
-            {/* Admin routes */}
-            <Route path="/admin" element={
-              <AdminProtectedRoute>
-                <AdminLayout />
-              </AdminProtectedRoute>
-            }>
-              <Route index element={<Navigate to="/admin/dashboard" replace />} />
-              <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="usuarios" element={<AdminUsers />} />
-              <Route path="configuracoes" element={<AdminSettings />} />
-            </Route>
-            
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Admin routes */}
+              <Route path="/admin" element={
+                <AdminProtectedRoute>
+                  <AdminLayout />
+                </AdminProtectedRoute>
+              }>
+                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="usuarios" element={<AdminUsers />} />
+                <Route path="configuracoes" element={<AdminSettings />} />
+              </Route>
+              
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </ErrorBoundary>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>

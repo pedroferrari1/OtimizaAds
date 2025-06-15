@@ -30,7 +30,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <Link to="/gerador">Começar a Gerar</Link>
+              <Link to="/app/ad-generator">Começar a Gerar</Link>
             </Button>
           </CardContent>
         </Card>
@@ -47,7 +47,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <Link to="/diagnostico">Analisar Anúncio</Link>
+              <Link to="/app/ad-diagnosis">Analisar Anúncio</Link>
             </Button>
           </CardContent>
         </Card>
@@ -64,7 +64,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <Link to="/historico">Ver Histórico</Link>
+              <Link to="/app/history">Ver Histórico</Link>
             </Button>
           </CardContent>
         </Card>
