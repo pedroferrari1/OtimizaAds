@@ -199,8 +199,7 @@ const AdDiagnosis = () => {
                   value={adText}
                   onChange={(e) => setAdText(e.target.value)}
                   rows={8}
-                  required
-                  className="min-h-[200px]"
+                  className="min-h-[200px] resize-none"
                 />
               </div>
               
