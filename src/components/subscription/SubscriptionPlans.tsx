@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, Users } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth";
 import { SubscriptionPlan } from "@/types/subscription";
 
 const SubscriptionPlans = () => {

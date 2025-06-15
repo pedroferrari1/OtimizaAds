@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/features/auth";
 import type { Tables } from "@/integrations/supabase/types";
 import HistoryCard from "@/components/history/HistoryCard";
 import HistoryFilters from "@/components/history/HistoryFilters";
