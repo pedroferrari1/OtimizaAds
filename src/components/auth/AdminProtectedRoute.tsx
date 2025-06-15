@@ -1,6 +1,6 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface AdminProtectedRouteProps {
   children: React.ReactNode;
@@ -8,6 +8,7 @@ interface AdminProtectedRouteProps {
 
 const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   const { user, loading, isAdmin } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -21,13 +22,16 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    console.log('AdminProtectedRoute: User not authenticated, redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (!isAdmin) {
+    console.log('AdminProtectedRoute: User not admin, redirecting to dashboard');
     return <Navigate to="/app/dashboard" replace />;
   }
 
+  console.log('AdminProtectedRoute: Admin user authenticated, allowing access');
   return <>{children}</>;
 };
 

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,20 +12,28 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, user } = useAuth();
+  const location = useLocation();
+
+  // Get the intended destination or default to dashboard
+  const from = location.state?.from?.pathname || "/app/dashboard";
 
   // Redirect if already logged in
   if (user) {
-    return <Navigate to="/app/dashboard" replace />;
+    return <Navigate to={from} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
+    console.log('Login attempt for:', email);
     const { error } = await signIn(email, password);
     
     if (!error) {
+      console.log('Login successful, redirecting to:', from);
       // Navigation will happen automatically via AuthContext
+    } else {
+      console.error('Login failed:', error);
     }
     
     setIsLoading(false);

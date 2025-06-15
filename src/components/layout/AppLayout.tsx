@@ -19,6 +19,7 @@ const AppLayout = () => {
   ];
 
   const handleLogout = async () => {
+    console.log('User logging out');
     await signOut();
   };
 
