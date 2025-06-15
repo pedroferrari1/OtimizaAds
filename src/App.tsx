@@ -17,6 +17,8 @@ import AdGenerator from "./pages/AdGenerator";
 import AdDiagnosis from "./pages/AdDiagnosis";
 import History from "./pages/History";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminMonitoring from "./pages/AdminMonitoring";
+import AdminAIConfig from "./pages/AdminAIConfig";
 import AdminUsers from "./pages/AdminUsers";
 import AdminSettings from "./pages/AdminSettings";
 import NotFound from "./pages/NotFound";
@@ -72,6 +74,8 @@ const App = () => (
               }>
                 <Route index element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="monitoring" element={<AdminMonitoring />} />
+                <Route path="ai-config" element={<AdminAIConfig />} />
                 <Route path="usuarios" element={<AdminUsers />} />
                 <Route path="configuracoes" element={<AdminSettings />} />
               </Route>

@@ -9,6 +9,250 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_config_history: {
+        Row: {
+          action: string
+          admin_user_id: string | null
+          change_reason: string | null
+          config_id: string | null
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          timestamp: string
+        }
+        Insert: {
+          action: string
+          admin_user_id?: string | null
+          change_reason?: string | null
+          config_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          timestamp?: string
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string | null
+          change_reason?: string | null
+          config_id?: string | null
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_config_history_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "ai_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_configurations: {
+        Row: {
+          config_level: string
+          created_at: string
+          frequency_penalty: number | null
+          id: string
+          is_active: boolean | null
+          level_identifier: string | null
+          max_tokens: number | null
+          model_id: string | null
+          presence_penalty: number | null
+          system_prompt: string | null
+          temperature: number | null
+          top_p: number | null
+          updated_at: string
+        }
+        Insert: {
+          config_level: string
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_identifier?: string | null
+          max_tokens?: number | null
+          model_id?: string | null
+          presence_penalty?: number | null
+          system_prompt?: string | null
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+        }
+        Update: {
+          config_level?: string
+          created_at?: string
+          frequency_penalty?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_identifier?: string | null
+          max_tokens?: number | null
+          model_id?: string | null
+          presence_penalty?: number | null
+          system_prompt?: string | null
+          temperature?: number | null
+          top_p?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_configurations_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "ai_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_models: {
+        Row: {
+          cost_per_token: number | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          max_tokens: number | null
+          model_name: string
+          model_type: string
+          provider: string
+          supports_streaming: boolean | null
+        }
+        Insert: {
+          cost_per_token?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model_name: string
+          model_type: string
+          provider: string
+          supports_streaming?: boolean | null
+        }
+        Update: {
+          cost_per_token?: number | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          max_tokens?: number | null
+          model_name?: string
+          model_type?: string
+          provider?: string
+          supports_streaming?: boolean | null
+        }
+        Relationships: []
+      }
+      ai_usage_metrics: {
+        Row: {
+          estimated_cost: number | null
+          id: string
+          model_name: string
+          response_time_ms: number | null
+          service_type: string
+          success: boolean | null
+          timestamp: string
+          tokens_input: number | null
+          tokens_output: number | null
+          user_id: string | null
+        }
+        Insert: {
+          estimated_cost?: number | null
+          id?: string
+          model_name: string
+          response_time_ms?: number | null
+          service_type: string
+          success?: boolean | null
+          timestamp?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          estimated_cost?: number | null
+          id?: string
+          model_name?: string
+          response_time_ms?: number | null
+          service_type?: string
+          success?: boolean | null
+          timestamp?: string
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      alert_configurations: {
+        Row: {
+          alert_name: string
+          comparison_operator: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          metric_type: string
+          notification_method: string
+          notification_target: string
+          threshold_value: number
+          updated_at: string
+        }
+        Insert: {
+          alert_name: string
+          comparison_operator: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          metric_type: string
+          notification_method: string
+          notification_target: string
+          threshold_value: number
+          updated_at?: string
+        }
+        Update: {
+          alert_name?: string
+          comparison_operator?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          metric_type?: string
+          notification_method?: string
+          notification_target?: string
+          threshold_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      api_performance_logs: {
+        Row: {
+          endpoint: string
+          error_message: string | null
+          id: string
+          method: string
+          response_time_ms: number
+          status_code: number
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          method: string
+          response_time_ms: number
+          status_code: number
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          method?: string
+          response_time_ms?: number
+          status_code?: number
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -60,6 +304,45 @@ export type Database = {
           details?: Json | null
           id?: string
           target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      error_logs: {
+        Row: {
+          endpoint: string | null
+          error_message: string
+          error_type: string
+          first_occurrence: string
+          frequency: number | null
+          id: string
+          last_occurrence: string
+          resolved: boolean | null
+          stack_trace: string | null
+          user_id: string | null
+        }
+        Insert: {
+          endpoint?: string | null
+          error_message: string
+          error_type: string
+          first_occurrence?: string
+          frequency?: number | null
+          id?: string
+          last_occurrence?: string
+          resolved?: boolean | null
+          stack_trace?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          endpoint?: string | null
+          error_message?: string
+          error_type?: string
+          first_occurrence?: string
+          frequency?: number | null
+          id?: string
+          last_occurrence?: string
+          resolved?: boolean | null
+          stack_trace?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -120,6 +403,30 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      system_health_metrics: {
+        Row: {
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number
+          timestamp: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value: number
+          timestamp?: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number
+          timestamp?: string
         }
         Relationships: []
       }
