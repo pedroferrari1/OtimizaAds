@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Save, RefreshCw, Eye, EyeOff, Zap } from "lucide-react";
+import type { Json } from "@/integrations/supabase/types";
 
 interface NovitaConfig {
   endpoint: string;
@@ -157,26 +158,26 @@ const AdminSettings = () => {
     try {
       setSaving(true);
 
-      // Atualizar cada configuração
+      // Converter os objetos para o tipo Json antes de salvar
       const updates = [
         {
           key: 'free_plan_limit',
-          value: settings.free_plan_limit,
+          value: settings.free_plan_limit as Json,
           description: 'Limites do plano gratuito',
         },
         {
           key: 'features',
-          value: settings.features,
+          value: settings.features as Json,
           description: 'Features habilitadas globalmente',
         },
         {
           key: 'api_limits',
-          value: settings.api_limits,
+          value: settings.api_limits as Json,
           description: 'Limites de API externa',
         },
         {
           key: 'novita_config',
-          value: settings.novita_config,
+          value: settings.novita_config as Json,
           description: 'Configurações da integração com Novita AI',
         },
       ];
@@ -202,7 +203,7 @@ const AdminSettings = () => {
       await supabase.from('audit_logs').insert({
         admin_user_id: (await supabase.auth.getUser()).data.user?.id,
         action: 'settings_updated',
-        details: { updated_settings: Object.keys(settings) }
+        details: { updated_settings: Object.keys(settings) } as Json
       });
 
       toast({
