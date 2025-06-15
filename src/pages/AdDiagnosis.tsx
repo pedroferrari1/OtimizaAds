@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DiagnosisReport {
   clarityScore: number;
@@ -22,9 +24,52 @@ const AdDiagnosis = () => {
   const [optimizedAds, setOptimizedAds] = useState<string[]>([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const saveToHistory = async (originalText: string, diagnosisReport: DiagnosisReport, optimizedAds: string[]) => {
+    if (!user) return;
+
+    try {
+      const content = `TEXTO ORIGINAL:\n${originalText}\n\n---\n\nRELATÓRIO DE DIAGNÓSTICO:\n${JSON.stringify(diagnosisReport, null, 2)}\n\n---\n\nVERSÕES OTIMIZADAS:\n${optimizedAds.join('\n\n')}`;
+      
+      const { error } = await supabase
+        .from('history_items')
+        .insert({
+          user_id: user.id,
+          type: 'diagnosis',
+          title: `Diagnóstico: ${originalText.substring(0, 50)}...`,
+          content: content,
+          input_data: {
+            originalText,
+            diagnosisReport,
+            optimizedAds
+          }
+        });
+
+      if (error) {
+        console.error('Error saving to history:', error);
+      } else {
+        toast({
+          title: "Salvo no histórico!",
+          description: "O diagnóstico foi salvo no seu histórico.",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving to history:', error);
+    }
+  };
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!adText.trim()) {
+      toast({
+        title: "Texto obrigatório",
+        description: "Por favor, insira o texto do anúncio para análise.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
 
     try {
@@ -65,6 +110,8 @@ const AdDiagnosis = () => {
   };
 
   const handleOptimize = async () => {
+    if (!diagnosisReport) return;
+    
     setIsOptimizing(true);
 
     try {
@@ -82,6 +129,10 @@ const AdDiagnosis = () => {
       ];
       
       setOptimizedAds(mockOptimizedAds);
+      
+      // Save to history
+      await saveToHistory(adText, diagnosisReport, mockOptimizedAds);
+      
       toast({
         title: "Otimização concluída!",
         description: "3 versões otimizadas foram geradas.",
@@ -137,10 +188,11 @@ const AdDiagnosis = () => {
                   onChange={(e) => setAdText(e.target.value)}
                   rows={8}
                   required
+                  className="min-h-[200px]"
                 />
               </div>
               
-              <Button type="submit" className="w-full" disabled={isAnalyzing}>
+              <Button type="submit" className="w-full" disabled={isAnalyzing || !adText.trim()}>
                 {isAnalyzing ? "Analisando anúncio..." : "Analisar Anúncio"}
               </Button>
             </form>

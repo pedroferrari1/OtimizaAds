@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Copy, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdGenerator = () => {
   const [productName, setProductName] = useState("");
@@ -16,6 +18,34 @@ const AdGenerator = () => {
   const [generatedAds, setGeneratedAds] = useState<string[]>([]);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  const saveToHistory = async (inputData: any, generatedAds: string[]) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('history_items')
+        .insert({
+          user_id: user.id,
+          type: 'generation',
+          title: `Anúncios para ${inputData.productName}`,
+          content: generatedAds.join('\n\n---\n\n'),
+          input_data: inputData
+        });
+
+      if (error) {
+        console.error('Error saving to history:', error);
+      } else {
+        toast({
+          title: "Salvo no histórico!",
+          description: "Os anúncios foram salvos no seu histórico.",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving to history:', error);
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,6 +68,15 @@ const AdGenerator = () => {
       ];
       
       setGeneratedAds(mockAds);
+      
+      // Save to history
+      const inputData = {
+        productName,
+        productDescription,
+        targetAudience
+      };
+      await saveToHistory(inputData, mockAds);
+      
       toast({
         title: "Anúncios gerados com sucesso!",
         description: "5 variações foram criadas para seu produto.",
