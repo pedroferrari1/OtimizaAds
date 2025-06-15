@@ -68,7 +68,7 @@ export const ModelManager = () => {
     mutationFn: async (data: ModelFormData) => {
       const { error } = await supabase
         .from("ai_models")
-        .insert([data]);
+        .insert(data);
 
       if (error) throw error;
     },

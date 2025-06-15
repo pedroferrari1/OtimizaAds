@@ -29,10 +29,6 @@ export const ConfigAuditLog = () => {
           ai_configurations (
             config_level,
             level_identifier
-          ),
-          profiles!ai_config_history_admin_user_id_fkey (
-            full_name,
-            email
           )
         `)
         .order("timestamp", { ascending: false })
@@ -45,17 +41,34 @@ export const ConfigAuditLog = () => {
       const { data, error } = await query;
       if (error) throw error;
 
+      // Buscar dados dos usuários separadamente
+      const logsWithUserData = await Promise.all((data || []).map(async (log) => {
+        if (log.admin_user_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name, email")
+            .eq("id", log.admin_user_id)
+            .single();
+          
+          return {
+            ...log,
+            admin_profile: profile
+          };
+        }
+        return log;
+      }));
+
       // Filter by search term if provided
       if (searchTerm) {
-        const filtered = data?.filter((log) =>
+        const filtered = logsWithUserData.filter((log) =>
           log.change_reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
           log.ai_configurations?.level_identifier?.toLowerCase().includes(searchTerm.toLowerCase())
         );
-        return filtered || [];
+        return filtered;
       }
 
-      return data || [];
+      return logsWithUserData;
     },
   });
 
@@ -196,7 +209,7 @@ export const ConfigAuditLog = () => {
                   {log.ai_configurations?.level_identifier || "N/A"}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {log.profiles?.full_name || log.profiles?.email || "Sistema"}
+                  {log.admin_profile?.full_name || log.admin_profile?.email || "Sistema"}
                 </TableCell>
                 <TableCell className="text-sm max-w-[200px] truncate">
                   {log.change_reason || "Sem motivo especificado"}
@@ -225,7 +238,7 @@ export const ConfigAuditLog = () => {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <h4 className="font-semibold">Administrador:</h4>
-                              <p className="text-sm">{log.profiles?.full_name || log.profiles?.email || "Sistema"}</p>
+                              <p className="text-sm">{log.admin_profile?.full_name || log.admin_profile?.email || "Sistema"}</p>
                             </div>
                             <div>
                               <h4 className="font-semibold">Configuração:</h4>
