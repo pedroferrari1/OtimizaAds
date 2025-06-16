@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -28,21 +27,32 @@ const AppLayout = () => {
       {navigation.map((item) => {
         // Verifica se o caminho atual começa com o href do item (para subrotas)
         const isActive = location.pathname.startsWith(item.href);
-        return (
-          <SheetClose key={item.name} asChild>
-            <Link
-              to={item.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-blue-100 text-blue-700"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-              } ${mobile ? "w-full" : ""}`}
-            >
-              <item.icon className="h-4 w-4" />
-              {item.name}
-            </Link>
-          </SheetClose>
+        
+        const linkElement = (
+          <Link
+            to={item.href}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-blue-100 text-blue-700"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+            } ${mobile ? "w-full" : ""}`}
+          >
+            <item.icon className="h-4 w-4" />
+            {item.name}
+          </Link>
         );
+
+        // Só usa SheetClose quando for mobile (dentro do Sheet)
+        if (mobile) {
+          return (
+            <SheetClose key={item.name} asChild>
+              {linkElement}
+            </SheetClose>
+          );
+        }
+
+        // Para desktop, retorna o link diretamente
+        return <div key={item.name}>{linkElement}</div>;
       })}
     </>
   );
