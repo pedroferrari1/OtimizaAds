@@ -64,14 +64,13 @@ const AdminMonitoring = () => {
         onValueChange={setActiveTab} 
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="errors">Logs de Erro</TabsTrigger>
           <TabsTrigger value="ai-usage">Uso de IA</TabsTrigger>
           <TabsTrigger value="funnel">Análise de Funil</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
-          <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -96,10 +95,6 @@ const AdminMonitoring = () => {
 
         <TabsContent value="alerts">
           <AlertManager />
-        </TabsContent>
-        
-        <TabsContent value="config">
-          <SystemHealthConfig />
         </TabsContent>
       </Tabs>
     </div>
