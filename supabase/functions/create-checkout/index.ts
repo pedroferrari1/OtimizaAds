@@ -26,6 +26,7 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Recebida requisição OPTIONS para CORS preflight');
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
   try {
     // Verificar se o Stripe está configurado
     if (!stripe) {
-      console.error('Stripe não configurado - STRIPE_SECRET_KEY ausente');
+      console.error('Stripe não configurado - STRIPE_SECRET_KEY ausente ou inválida');
       return new Response(
         JSON.stringify({ 
           error: 'Serviço de pagamento não configurado. Entre em contato com o suporte.',
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
     // Get the JWT token from the Authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('Cabeçalho de autorização ausente');
+      console.error('Erro de autenticação: Cabeçalho de autorização ausente');
       return new Response(
         JSON.stringify({ error: 'Token de autorização necessário' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,7 +61,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.error('Erro de autenticação:', authError?.message);
+      console.error('Erro de autenticação do usuário:', authError?.message || 'Usuário não encontrado');
       return new Response(
         JSON.stringify({ error: 'Token inválido ou expirado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -70,8 +71,9 @@ Deno.serve(async (req) => {
     // Get the plan ID from the request body
     const { plan_id } = await req.json();
     
+    // Validar plan_id
     if (!plan_id) {
-      console.error('Plan ID ausente na requisição');
+      console.error('Erro de validação: Plan ID ausente na requisição');
       return new Response(
         JSON.stringify({ error: 'ID do plano é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -89,7 +91,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (planError) {
-      console.error('Erro ao buscar plano:', planError);
+      console.error('Erro ao buscar plano do banco de dados:', planError);
       return new Response(
         JSON.stringify({ error: 'Erro ao buscar informações do plano' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -97,7 +99,7 @@ Deno.serve(async (req) => {
     }
 
     if (!plan) {
-      console.error('Plano não encontrado ou inativo:', plan_id);
+      console.error('Plano não encontrado ou inativo com ID:', plan_id);
       return new Response(
         JSON.stringify({ error: 'Plano não encontrado ou não está ativo' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -106,7 +108,7 @@ Deno.serve(async (req) => {
 
     // Check if the plan has a Stripe price ID
     if (!plan.stripe_price_id) {
-      console.error('Plano sem stripe_price_id:', plan.name);
+      console.error('Erro de configuração: Plano sem stripe_price_id:', plan.name);
       return new Response(
         JSON.stringify({ 
           error: 'Este plano não está configurado para pagamento online. Entre em contato com o suporte.' 
@@ -126,7 +128,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (customerError) {
-      console.error('Erro ao buscar cliente:', customerError);
+      console.error('Erro ao buscar cliente do Stripe:', customerError);
       return new Response(
         JSON.stringify({ error: 'Erro ao verificar dados do cliente' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -138,7 +140,7 @@ Deno.serve(async (req) => {
     // If the user doesn't have a Stripe customer ID, create one
     if (!customer) {
       console.log('Criando novo cliente Stripe para:', user.email);
-      
+
       try {
         const newCustomer = await stripe.customers.create({
           email: user.email,
@@ -155,7 +157,7 @@ Deno.serve(async (req) => {
           });
 
         if (createCustomerError) {
-          console.error('Erro ao salvar cliente:', createCustomerError);
+          console.error('Erro ao salvar cliente no banco de dados:', createCustomerError);
           return new Response(
             JSON.stringify({ error: 'Erro ao criar registro do cliente' }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -179,8 +181,9 @@ Deno.serve(async (req) => {
     // Verificar se o price_id existe no Stripe
     try {
       await stripe.prices.retrieve(plan.stripe_price_id);
+      console.log('Price ID validado no Stripe:', plan.stripe_price_id);
     } catch (stripeError) {
-      console.error('Price ID inválido no Stripe:', plan.stripe_price_id, stripeError);
+      console.error('Erro de validação: Price ID inválido no Stripe:', plan.stripe_price_id, stripeError);
       return new Response(
         JSON.stringify({ 
           error: 'Configuração de preço inválida. Entre em contato com o suporte.' 
@@ -198,8 +201,8 @@ Deno.serve(async (req) => {
     // Create a checkout session
     try {
       const session = await stripe.checkout.sessions.create({
-        customer: customerId,
         payment_method_types: ['card'],
+        customer: customerId,
         line_items: [
           {
             price: plan.stripe_price_id,
@@ -221,7 +224,7 @@ Deno.serve(async (req) => {
         },
       });
 
-      console.log('Sessão de checkout criada com sucesso:', session.id);
+      console.log('Sessão de checkout criada com sucesso. ID:', session.id, 'URL:', session.url);
 
       // Return the checkout session URL
       return new Response(
@@ -232,7 +235,7 @@ Deno.serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } catch (stripeError) {
-      console.error('Erro ao criar sessão de checkout:', stripeError);
+      console.error('Erro do Stripe ao criar sessão de checkout:', stripeError);
       return new Response(
         JSON.stringify({ 
           error: 'Erro ao criar sessão de pagamento. Tente novamente.' 
@@ -241,7 +244,7 @@ Deno.serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error('Erro geral na função create-checkout:', error);
+    console.error('Erro geral não tratado na função create-checkout:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Erro interno do servidor. Tente novamente mais tarde.' 

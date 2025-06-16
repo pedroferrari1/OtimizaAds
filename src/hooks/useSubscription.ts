@@ -132,17 +132,28 @@ export const useSubscription = () => {
   const createCheckoutSession = async (planId: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan_id: planId }
-      });
-
-      if (error) throw error;
       
-      if (data?.url) {
-        // Redirecionar para a URL de checkout do Stripe
-        window.location.href = data.url;
-      } else {
-        throw new Error('URL de checkout não recebida');
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { plan_id: planId }
+        });
+
+        if (error) {
+          console.error('Erro na invocação da função create-checkout:', error);
+          throw error;
+        }
+        
+        if (data?.url) {
+          // Redirecionar para a URL de checkout do Stripe
+          console.log('Redirecionando para URL de checkout:', data.url);
+          window.location.href = data.url;
+        } else {
+          console.error('URL de checkout não recebida nos dados de resposta:', data);
+          throw new Error('URL de checkout não recebida');
+        }
+      } catch (invokeError) {
+        console.error('Erro ao invocar função create-checkout:', invokeError);
+        throw new Error(`Erro ao iniciar checkout: ${invokeError.message || 'Erro desconhecido'}`);
       }
     } catch (error) {
       console.error('Error creating checkout session:', error);

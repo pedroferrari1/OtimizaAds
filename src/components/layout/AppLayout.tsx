@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Users, FileText, History, Menu, LogOut, BarChart3, CreditCard } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth";
 
 const AppLayout = () => {
@@ -26,21 +26,22 @@ const AppLayout = () => {
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {navigation.map((item) => {
-        const isActive = location.pathname === item.href;
+        // Verifica se o caminho atual começa com o href do item (para subrotas)
+        const isActive = location.pathname.startsWith(item.href);
         return (
-          <Link
-            key={item.name}
-            to={item.href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-blue-100 text-blue-700"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            } ${mobile ? "w-full" : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
-          >
-            <item.icon className="h-4 w-4" />
-            {item.name}
-          </Link>
+          <SheetClose key={item.name} asChild>
+            <Link
+              to={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-blue-100 text-blue-700"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              } ${mobile ? "w-full" : ""}`}
+            >
+              <item.icon className="h-4 w-4" />
+              {item.name}
+            </Link>
+          </SheetClose>
         );
       })}
     </>
@@ -51,7 +52,7 @@ const AppLayout = () => {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-16 relative">
             <div className="flex items-center gap-4">
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
@@ -61,6 +62,9 @@ const AppLayout = () => {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64">
                   <div className="flex flex-col gap-4 mt-6">
+                    <div className="px-3 py-2 mb-2">
+                      <h2 className="text-lg font-bold text-blue-600">OtimizaAds</h2>
+                    </div>
                     <NavItems mobile />
                   </div>
                 </SheetContent>
@@ -75,7 +79,9 @@ const AppLayout = () => {
             </div>
 
             <div className="hidden md:flex items-center space-x-1">
-              <NavItems />
+              <div className="flex items-center space-x-1">
+                <NavItems />
+              </div>
             </div>
 
             <div className="flex items-center gap-4">

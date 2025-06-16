@@ -86,22 +86,11 @@ export const ModelManager = () => {
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
       // Verificar se o nome do modelo já existe
-      if (checkModelNameExists(data.model_name)) {
+      const modelNameExists = checkModelNameExists(data.model_name);
+      if (modelNameExists) {
         throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
       }
 
-      // Ensure all required fields are present and convert to the correct insert type
-      // Verificar se o modelo já existe
-      const { data: existingModel, error: checkError } = await supabase
-        .from("ai_models")
-        .select("id")
-        .eq("model_name", data.model_name)
-        .maybeSingle();
-        
-      if (existingModel) {
-        throw new Error("Um modelo com este nome já existe. Por favor, escolha um nome diferente.");
-      }
-      
       const insertData: ModelInsertData = {
         model_name: data.model_name,
         provider: data.provider,
@@ -139,21 +128,9 @@ export const ModelManager = () => {
   const updateModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
       // Verificar se o modelo já existe com este nome (exceto o próprio modelo)
-      if (editingModel) {
-        const { data: existingModel, error: checkError } = await supabase
-          .from("ai_models")
-          .select("id")
-          .eq("model_name", data.model_name)
-          .neq("id", editingModel.id)
-          .maybeSingle();
-          
-        if (existingModel) {
-          throw new Error("Um modelo com este nome já existe. Por favor, escolha um nome diferente.");
-        }
-      }
-      
       // Verificar se o nome do modelo já existe (excluindo o modelo atual)
-      if (checkModelNameExists(data.model_name, editingModel?.id)) {
+      const modelNameExists = checkModelNameExists(data.model_name, editingModel?.id);
+      if (modelNameExists) {
         throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
       }
 
@@ -379,11 +356,17 @@ export const ModelManager = () => {
                 <FormField
                   control={form.control}
                   name="model_name"
+                  rules={{ required: "Nome do modelo é obrigatório" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Nome do Modelo</FormLabel>
                       <FormControl>
-                        <Input placeholder="ex: gpt-4o-mini" {...field} />
+                        <Input 
+                          placeholder="ex: gpt-4o-mini" 
+                          {...field} 
+                          required
+                          aria-required="true"
+                        />
                       </FormControl>
                       <FormDescription>
                         O nome deve ser único no sistema
@@ -397,6 +380,7 @@ export const ModelManager = () => {
                   <FormField
                     control={form.control}
                     name="provider"
+                    rules={{ required: "Provedor é obrigatório" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Provedor</FormLabel>
@@ -424,6 +408,7 @@ export const ModelManager = () => {
                   <FormField
                     control={form.control}
                     name="model_type"
+                    rules={{ required: "Tipo do modelo é obrigatório" }}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo do Modelo</FormLabel>

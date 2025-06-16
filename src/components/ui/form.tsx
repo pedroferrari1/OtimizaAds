@@ -167,6 +167,7 @@ FormMessage.displayName = "FormMessage"
 export {
   useFormField,
   Form,
+  FormHelperText,
   FormItem,
   FormLabel,
   FormControl,
@@ -174,3 +175,17 @@ export {
   FormMessage,
   FormField,
 }
+
+const FormHelperText = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <p
+      ref={ref}
+      className={cn("text-xs text-muted-foreground mt-1", className)}
+      {...props}
+    />
+  )
+})
+FormHelperText.displayName = "FormHelperText"
