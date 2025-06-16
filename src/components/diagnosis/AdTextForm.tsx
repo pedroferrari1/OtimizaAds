@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 interface AdTextFormProps {
   adText: string;
@@ -11,6 +12,8 @@ interface AdTextFormProps {
 }
 
 const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormProps) => {
+  const [hasInteracted, setHasInteracted] = useState(false);
+
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setAdText(newValue);
@@ -19,6 +22,13 @@ const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAnalyze();
+  };
+
+  const handleFocus = () => {
+    if (!hasInteracted) {
+      setAdText("");
+      setHasInteracted(true);
+    }
   };
 
   return (
@@ -39,6 +49,7 @@ const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormPro
               placeholder="Cole aqui o texto completo do seu anúncio..."
               value={adText}
               onChange={handleTextChange}
+              onFocus={handleFocus}
               rows={8}
               className="min-h-[200px] bg-white border-gray-300 text-gray-900"
             />
