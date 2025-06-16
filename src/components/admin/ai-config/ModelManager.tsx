@@ -59,9 +59,9 @@ type ModelInsertData = {
   is_active?: boolean;
 };
 
-export const ModelManager = () => {
+const ModelManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingModel, setEditingModel] = useState<any>(null);
+  const [editingModel, setEditingModel] = useState<Record<string, unknown> | null>(null);
   const queryClient = useQueryClient();
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -335,7 +335,7 @@ export const ModelManager = () => {
   };
 
   // Manipular exclusão de modelo
-  const handleDelete = (model: any) => {
+  const handleDelete = (model: Record<string, unknown>) => {
     setConfirmDelete(model.id);
   };
 
@@ -833,3 +833,5 @@ export const ModelManager = () => {
     </Card>
   );
 };
+
+export { ModelManager };

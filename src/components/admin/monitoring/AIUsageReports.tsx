@@ -86,7 +86,14 @@ export const AIUsageReports = () => {
   };
 
   // Group by model for analysis
-  const modelStats = usageMetrics?.reduce((acc, metric) => {
+  const modelStats = usageMetrics?.reduce((acc: Record<string, {
+    requests: number;
+    tokensInput: number;
+    tokensOutput: number;
+    cost: number;
+    responseTime: number;
+    successCount: number;
+  }>, metric) => {
     const model = metric.model_name;
     if (!acc[model]) {
       acc[model] = {
@@ -107,7 +114,7 @@ export const AIUsageReports = () => {
     if (metric.success) acc[model].successCount++;
     
     return acc;
-  }, {} as Record<string, any>) || {};
+  }, {}) || {};
 
   // Get unique models for filter
   const models = [...new Set(usageMetrics?.map(m => m.model_name) || [])];

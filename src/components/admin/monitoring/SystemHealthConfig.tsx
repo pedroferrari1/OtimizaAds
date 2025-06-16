@@ -56,9 +56,9 @@ export const SystemHealthConfig = () => {
       if (data) {
         data.forEach(item => {
           if (item.key === 'system_performance') {
-            setPerformanceConfig(item.value as any);
+            setPerformanceConfig(item.value as typeof performanceConfig);
           } else if (item.key === 'system_monitoring') {
-            setMonitoringConfig(item.value as any);
+            setMonitoringConfig(item.value as typeof monitoringConfig);
           }
         });
       }
