@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, Lightbulb } from "lucide-react";
+import { ArrowRight, Lightbulb, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface FunnelOptimizerFormProps {
   adText: string;
@@ -12,6 +13,8 @@ interface FunnelOptimizerFormProps {
   setLandingPageText: (text: string) => void;
   isAnalyzing: boolean;
   onAnalyze: () => void;
+  canUseFeature?: boolean;
+  usageData?: {current: number, limit: number} | null;
 }
 
 export const FunnelOptimizerForm = ({
@@ -20,7 +23,9 @@ export const FunnelOptimizerForm = ({
   landingPageText,
   setLandingPageText,
   isAnalyzing,
-  onAnalyze
+  onAnalyze,
+  canUseFeature = true,
+  usageData
 }: FunnelOptimizerFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +34,30 @@ export const FunnelOptimizerForm = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {usageData && usageData.limit > 0 && (
+        <Alert variant={usageData.current >= usageData.limit * 0.8 ? "warning" : "default"}>
+          <AlertTitle className="flex items-center gap-2">
+            {usageData.current >= usageData.limit * 0.8 && (
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            )}
+            Uso do recurso
+          </AlertTitle>
+          <AlertDescription>
+            Você utilizou {usageData.current} de {usageData.limit} análises disponíveis em seu plano atual.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!canUseFeature && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Limite atingido</AlertTitle>
+          <AlertDescription>
+            Você atingiu o limite de análises do seu plano. Faça upgrade para continuar utilizando este recurso.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Tabs defaultValue="ad" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ad">Texto do Anúncio</TabsTrigger>
@@ -52,6 +81,7 @@ export const FunnelOptimizerForm = ({
                   onChange={(e) => setAdText(e.target.value)}
                   placeholder="Ex: 🔥 Curso de Marketing Digital com 50% OFF! Aprenda a criar campanhas que convertem e aumente suas vendas. Últimas vagas disponíveis, inscreva-se agora!"
                   className="min-h-[200px] resize-none"
+                  disabled={!canUseFeature}
                 />
                 <div className="text-xs text-gray-500 flex justify-between">
                   <span>Caracteres: {adText.length}</span>
@@ -70,6 +100,7 @@ export const FunnelOptimizerForm = ({
               variant="outline" 
               onClick={() => document.querySelector('[data-value="landing"]')?.click()}
               className="flex items-center gap-2"
+              disabled={!canUseFeature}
             >
               Próximo
               <ArrowRight className="h-4 w-4" />
@@ -94,6 +125,7 @@ export const FunnelOptimizerForm = ({
                   onChange={(e) => setLandingPageText(e.target.value)}
                   placeholder="Ex: Curso Completo de Marketing Digital | Transforme seu negócio com estratégias comprovadas. Nosso curso abrange Facebook Ads, Google Ads, SEO e muito mais. Garanta 50% de desconto na inscrição até o final da semana."
                   className="min-h-[300px] resize-none"
+                  disabled={!canUseFeature}
                 />
                 <div className="text-xs text-gray-500 flex justify-between">
                   <span>Caracteres: {landingPageText.length}</span>
@@ -111,13 +143,14 @@ export const FunnelOptimizerForm = ({
               type="button" 
               variant="outline" 
               onClick={() => document.querySelector('[data-value="ad"]')?.click()}
+              disabled={!canUseFeature}
             >
               Voltar ao Anúncio
             </Button>
             
             <Button 
               type="submit" 
-              disabled={isAnalyzing || !adText.trim() || !landingPageText.trim()}
+              disabled={isAnalyzing || !adText.trim() || !landingPageText.trim() || !canUseFeature}
             >
               {isAnalyzing ? "Analisando..." : "Analisar Coerência"}
             </Button>

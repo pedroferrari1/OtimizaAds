@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FunnelAnalysisResult } from "@/types/funnel-optimizer";
-import { ArrowLeft, Copy, CheckCircle, ArrowUpDown, Lightbulb } from "lucide-react";
+import { ArrowLeft, Copy, CheckCircle, ArrowUpDown, Lightbulb, BarChart, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
 interface FunnelAnalysisResultsProps {
   results: FunnelAnalysisResult;
@@ -35,6 +36,12 @@ export const FunnelAnalysisResults = ({
     return "Precisa melhorar";
   };
 
+  const getScoreBadgeVariant = (score: number) => {
+    if (score >= 8) return "default";
+    if (score >= 6) return "secondary";
+    return "destructive";
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -55,19 +62,15 @@ export const FunnelAnalysisResults = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
           <div className="flex items-center gap-2">
             <span className="text-lg font-medium">Pontuação de Coerência:</span>
             <span className={`text-2xl font-bold ${getScoreColor(results.funnelCoherenceScore)}`}>
               {results.funnelCoherenceScore}/10
             </span>
           </div>
-          <Badge variant={
-            results.funnelCoherenceScore >= 8 ? "default" : 
-            results.funnelCoherenceScore >= 6 ? "secondary" : 
-            "destructive"
-          }>
+          <Badge variant={getScoreBadgeVariant(results.funnelCoherenceScore)}>
             {getScoreLabel(results.funnelCoherenceScore)}
           </Badge>
         </div>
@@ -77,6 +80,42 @@ export const FunnelAnalysisResults = ({
           Nova Análise
         </Button>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5 text-blue-600" />
+            Resumo da Análise
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Coerência de Mensagem</span>
+                <span className="text-sm font-medium">{Math.round(results.funnelCoherenceScore * 10)}%</span>
+              </div>
+              <Progress value={results.funnelCoherenceScore * 10} className="h-2" />
+            </div>
+            
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-2">
+                <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-800 font-medium">Impacto na Conversão</p>
+                  <p className="text-sm text-blue-700 mt-1">
+                    {results.funnelCoherenceScore >= 8 
+                      ? "Sua coerência de funil está excelente! Isso deve resultar em altas taxas de conversão e menor custo por aquisição."
+                      : results.funnelCoherenceScore >= 6
+                      ? "Sua coerência de funil é boa, mas há espaço para melhorias. Implementar as sugestões pode aumentar suas conversões."
+                      : "A baixa coerência entre seu anúncio e página de destino está provavelmente prejudicando suas conversões. Recomendamos implementar as sugestões urgentemente."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="diagnosis" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -95,6 +134,11 @@ export const FunnelAnalysisResults = ({
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-700">{results.adDiagnosis}</p>
+                
+                <div className="mt-4 p-3 border rounded-lg bg-gray-50">
+                  <h4 className="text-sm font-medium mb-2">Anúncio Original</h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{originalAd}</p>
+                </div>
               </CardContent>
             </Card>
             
@@ -106,6 +150,11 @@ export const FunnelAnalysisResults = ({
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-700">{results.landingPageDiagnosis}</p>
+                
+                <div className="mt-4 p-3 border rounded-lg bg-gray-50 max-h-[200px] overflow-y-auto">
+                  <h4 className="text-sm font-medium mb-2">Página de Destino</h4>
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{originalLandingPage}</p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -122,31 +171,37 @@ export const FunnelAnalysisResults = ({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-start gap-2">
-                    <Lightbulb className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-blue-800 font-medium">Impacto na Conversão</p>
-                      <p className="text-sm text-blue-700 mt-1">
-                        {results.funnelCoherenceScore >= 8 
-                          ? "Sua coerência de funil está excelente! Isso deve resultar em altas taxas de conversão e menor custo por aquisição."
-                          : results.funnelCoherenceScore >= 6
-                          ? "Sua coerência de funil é boa, mas há espaço para melhorias. Implementar as sugestões pode aumentar suas conversões."
-                          : "A baixa coerência entre seu anúncio e página de destino está provavelmente prejudicando suas conversões. Recomendamos implementar as sugestões urgentemente."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-2">Anúncio Original</h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{originalAd}</p>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Pontos de Alinhamento</h3>
+                    <ul className="space-y-1">
+                      {[
+                        "Menção ao desconto de 50%",
+                        "Foco em marketing digital",
+                        "Chamada para ação para inscrição"
+                      ].map((item, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                   
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 mb-2">Página de Destino</h3>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">{originalLandingPage}</p>
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Pontos de Desalinhamento</h3>
+                    <ul className="space-y-1">
+                      {[
+                        "Tópicos específicos mencionados apenas na página",
+                        "Certificado e garantia ausentes no anúncio",
+                        "Diferença na linguagem de urgência"
+                      ].map((item, i) => (
+                        <li key={i} className="text-sm text-gray-700 flex items-center gap-2">
+                          <ArrowRight className="h-4 w-4 text-red-600 flex-shrink-0" />
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </div>

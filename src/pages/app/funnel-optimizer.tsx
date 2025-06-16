@@ -2,6 +2,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { FunnelOptimizerForm } from "@/components/funnel-optimizer/FunnelOptimizerForm";
 import { FunnelAnalysisResults } from "@/components/funnel-optimizer/FunnelAnalysisResults";
 import { useFunnelOptimizer } from "@/hooks/useFunnelOptimizer";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 const FunnelOptimizer = () => {
   const {
@@ -12,7 +14,9 @@ const FunnelOptimizer = () => {
     isAnalyzing,
     analysisResults,
     handleAnalyze,
-    resetResults
+    resetResults,
+    canUseFeature,
+    usageData
   } = useFunnelOptimizer();
 
   return (
@@ -24,6 +28,17 @@ const FunnelOptimizer = () => {
         </p>
       </div>
 
+      {!canUseFeature && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Recurso não disponível</AlertTitle>
+          <AlertDescription>
+            Seu plano atual não inclui acesso ao Laboratório de Otimização de Funil ou você atingiu o limite de análises. 
+            Faça upgrade para um plano superior para continuar utilizando este recurso.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {!analysisResults ? (
         <FunnelOptimizerForm
           adText={adText}
@@ -32,6 +47,8 @@ const FunnelOptimizer = () => {
           setLandingPageText={setLandingPageText}
           isAnalyzing={isAnalyzing}
           onAnalyze={handleAnalyze}
+          canUseFeature={canUseFeature}
+          usageData={usageData}
         />
       ) : (
         <FunnelAnalysisResults

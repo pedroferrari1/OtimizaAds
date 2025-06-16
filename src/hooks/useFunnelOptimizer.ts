@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth";
@@ -9,8 +9,47 @@ export const useFunnelOptimizer = () => {
   const [landingPageText, setLandingPageText] = useState<string>("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<FunnelAnalysisResult | null>(null);
+  const [canUseFeature, setCanUseFeature] = useState<boolean>(true);
+  const [usageData, setUsageData] = useState<{current: number, limit: number} | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Verificar se o usuário pode usar o recurso
+  useEffect(() => {
+    if (user) {
+      checkFeatureUsage();
+    }
+  }, [user]);
+
+  const checkFeatureUsage = async () => {
+    try {
+      const { data, error } = await supabase.rpc('check_funnel_analysis_usage', {
+        user_uuid: user?.id
+      });
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const usage = data[0];
+        setCanUseFeature(usage.can_use);
+        setUsageData({
+          current: usage.current_usage,
+          limit: usage.limit_value
+        });
+        
+        // Avisar se estiver próximo do limite
+        if (usage.limit_value > 0 && usage.current_usage >= usage.limit_value * 0.8) {
+          toast({
+            title: "Atenção",
+            description: `Você utilizou ${usage.current_usage} de ${usage.limit_value} análises disponíveis em seu plano.`,
+            variant: "default",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar uso do recurso:', error);
+    }
+  };
 
   const saveToHistory = async (
     adText: string, 
@@ -87,45 +126,52 @@ ${results.optimizedAd}
       return;
     }
 
+    if (!canUseFeature) {
+      toast({
+        title: "Limite atingido",
+        description: "Você atingiu o limite de análises do seu plano. Faça upgrade para continuar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAnalyzing(true);
 
     try {
-      // Em uma implementação real, chamaríamos a Edge Function
-      // const { data, error } = await supabase.functions.invoke('funnel-optimizer', {
-      //   body: { adText, landingPageText }
-      // });
+      // Chamar a Edge Function
+      const { data, error } = await supabase.functions.invoke('funnel-optimizer', {
+        body: { adText, landingPageText }
+      });
       
-      // if (error) throw error;
-      // setAnalysisResults(data);
+      if (error) throw error;
       
-      // Simulação de resposta para desenvolvimento da UI
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Atualizar dados de uso após análise bem-sucedida
+      await checkFeatureUsage();
       
-      const mockResults: FunnelAnalysisResult = {
-        funnelCoherenceScore: 6.5,
-        adDiagnosis: "O anúncio possui um bom gancho inicial e menciona o desconto de 50%, mas não detalha suficientemente os benefícios específicos do curso. A chamada para ação é clara, mas poderia ser mais urgente. Faltam elementos de prova social ou credibilidade que estão presentes na página de destino.",
-        landingPageDiagnosis: "A página de destino tem um bom headline e detalha bem os benefícios do curso, incluindo os tópicos cobertos. No entanto, não enfatiza tanto o desconto de 50% que é o principal atrativo do anúncio. A página também menciona elementos (como certificado e garantia) que não aparecem no anúncio.",
-        syncSuggestions: [
-          "Inclua no anúncio uma menção aos tópicos específicos cobertos no curso (Facebook Ads, Google Ads, SEO) para alinhar com a página de destino.",
-          "Adicione a informação sobre certificado e garantia no anúncio, já que são diferenciais importantes mencionados na página.",
-          "Enfatize mais o desconto de 50% na página de destino, tornando-o tão proeminente quanto no anúncio.",
-          "Utilize a mesma linguagem de urgência ('últimas vagas') tanto no anúncio quanto na página de destino."
-        ],
-        optimizedAd: "🔥 Curso Completo de Marketing Digital com 50% OFF! Domine Facebook Ads, Google Ads e SEO com estratégias comprovadas que transformam seu negócio. Inclui certificado e garantia de satisfação. Últimas vagas disponíveis, inscreva-se agora! 👉"
-      };
-      
-      setAnalysisResults(mockResults);
+      // Definir resultados
+      setAnalysisResults(data);
       
       // Salvar no histórico
-      await saveToHistory(adText, landingPageText, mockResults);
+      await saveToHistory(adText, landingPageText, data);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing funnel:', error);
-      toast({
-        title: "Erro na análise",
-        description: "Não foi possível analisar os textos. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
+      
+      // Verificar se é um erro de limite de plano
+      if (error.message?.includes('plano atual não inclui acesso')) {
+        setCanUseFeature(false);
+        toast({
+          title: "Recurso não disponível",
+          description: "Seu plano atual não inclui acesso ao Laboratório de Otimização de Funil. Faça upgrade para continuar.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Erro na análise",
+          description: "Não foi possível analisar os textos. Tente novamente mais tarde.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -143,6 +189,8 @@ ${results.optimizedAd}
     isAnalyzing,
     analysisResults,
     handleAnalyze,
-    resetResults
+    resetResults,
+    canUseFeature,
+    usageData
   };
 };
