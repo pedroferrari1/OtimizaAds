@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import SubscriptionDetails from "./components/SubscriptionDetails";
 import SubscriptionPricing from "./components/SubscriptionPricing";
 import PaymentSection from "./components/PaymentSection";
+import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
 
 const Subscription = () => {
   const { 
