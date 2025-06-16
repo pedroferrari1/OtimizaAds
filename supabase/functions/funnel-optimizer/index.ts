@@ -321,6 +321,11 @@ async function getAIConfiguration(supabaseClient, userId: string): Promise<AICon
       // Obter chave de API para o provedor
       const apiKey = await getProviderAPIKey(supabaseClient, serviceConfig.ai_models.provider);
       
+      if (!apiKey || apiKey.trim() === '') {
+        console.error(`API key não encontrada para o provedor ${serviceConfig.ai_models.provider}`);
+        throw new Error(`Configuração de API incompleta para o provedor ${serviceConfig.ai_models.provider}`);
+      }
+      
       return {
         model_name: serviceConfig.ai_models.model_name,
         provider: serviceConfig.ai_models.provider,
@@ -356,6 +361,11 @@ async function getAIConfiguration(supabaseClient, userId: string): Promise<AICon
       // Obter chave de API para o provedor
       const apiKey = await getProviderAPIKey(supabaseClient, globalConfig.ai_models.provider);
       
+      if (!apiKey || apiKey.trim() === '') {
+        console.error(`API key não encontrada para o provedor ${globalConfig.ai_models.provider}`);
+        throw new Error(`Configuração de API incompleta para o provedor ${globalConfig.ai_models.provider}`);
+      }
+      
       return {
         model_name: globalConfig.ai_models.model_name,
         provider: globalConfig.ai_models.provider,
@@ -368,6 +378,12 @@ async function getAIConfiguration(supabaseClient, userId: string): Promise<AICon
     }
     
     // Se não encontrar nenhuma configuração, usar valores padrão
+    const defaultApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+    if (!defaultApiKey || defaultApiKey.trim() === '') {
+      console.error('Nenhuma chave de API configurada para OpenAI (padrão)');
+      throw new Error('Configuração de API não encontrada. Verifique as configurações do sistema.');
+    }
+    
     return {
       model_name: 'gpt-4o',
       provider: 'openai',
@@ -375,13 +391,18 @@ async function getAIConfiguration(supabaseClient, userId: string): Promise<AICon
       provider_model_id: 'gpt-4o',
       temperature: 0.7,
       max_tokens: 2048,
-      api_key: Deno.env.get('OPENAI_API_KEY') || ''
+      api_key: defaultApiKey
     };
     
   } catch (error) {
     console.error('Erro ao buscar configuração de IA:', error);
     
     // Configuração de fallback
+    const fallbackApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+    if (!fallbackApiKey || fallbackApiKey.trim() === '') {
+      throw new Error('Configuração de API não encontrada. Verifique as configurações do sistema.');
+    }
+    
     return {
       model_name: 'gpt-4o',
       provider: 'openai',
@@ -389,7 +410,7 @@ async function getAIConfiguration(supabaseClient, userId: string): Promise<AICon
       provider_model_id: 'gpt-4o',
       temperature: 0.7,
       max_tokens: 2048,
-      api_key: Deno.env.get('OPENAI_API_KEY') || ''
+      api_key: fallbackApiKey
     };
   }
 }
@@ -429,7 +450,10 @@ async function getProviderAPIKey(supabaseClient, provider: string): Promise<stri
     
     throw new Error(`API key não encontrada para o provedor ${provider}`);
   } catch (error) {
-    console.error('Erro ao obter chave de API:', error);
+    console.error(`Erro ao obter chave de API para ${provider}:`, error);
+    if (error.message.includes('API key não encontrada')) {
+      throw error; // Re-throw para manter a mensagem específica
+    }
     throw error;
   }
 }
