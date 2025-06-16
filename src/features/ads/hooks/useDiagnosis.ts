@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/features/auth";
@@ -21,7 +20,26 @@ export const useDiagnosis = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const saveToHistory = async (originalText: string, diagnosisReport: DiagnosisReport, optimizedAds: string[]) => {
+  // Função para validar e formatar o texto do anúncio
+  const validateAndFormatText = (text: string): { isValid: boolean; formattedText?: string; error?: string } => {
+    if (!text.trim()) {
+      return { isValid: false, error: "O texto do anúncio não pode estar vazio." };
+    }
+    
+    if (text.length > 1000) {
+      return { isValid: false, error: "O texto do anúncio deve ter no máximo 1000 caracteres." };
+    }
+    
+    // Remover espaços extras e formatar o texto
+    const formattedText = text
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[^\w\s.,!?;:()"'-]/g, '');
+      
+    return { isValid: true, formattedText };
+  };
+
+  const saveToHistory = async (originalText: string, diagnosisReport: DiagnosisReport, optimizedAds: string[] = []) => {
     if (!user) return;
 
     try {
@@ -67,24 +85,49 @@ export const useDiagnosis = () => {
   };
 
   const handleAnalyze = async () => {
-    if (!adText.trim()) {
+    // Validar e formatar o texto do anúncio
+    const validation = validateAndFormatText(adText);
+    if (!validation.isValid) {
       toast({
-        title: "Texto obrigatório",
-        description: "Por favor, insira o texto do anúncio para análise.",
+        title: "Erro de validação",
+        description: validation.error,
         variant: "destructive",
       });
       return;
     }
 
+    // Usar o texto formatado
+    const formattedAdText = validation.formattedText!;
+    
     setIsAnalyzing(true);
 
     try {
-      console.log("Analyzing ad:", adText);
+      console.log("Analisando anúncio:", formattedAdText);
       
-      // Simulate API call
+      // Verificar se o usuário pode usar o serviço (verificar limite do plano)
+      try {
+        // Chamada para função que verifica uso do recurso (exemplo)
+        const { data, error } = await supabase.rpc('check_feature_usage', {
+          user_uuid: user?.id,
+          feature: 'diagnostics'
+        });
+        
+        if (error) throw error;
+        
+        // Se não puder usar o recurso, mostrar mensagem de erro
+        if (data && data[0] && !data[0].can_use) {
+          throw new Error('Você atingiu o limite de diagnósticos do seu plano.');
+        }
+        
+      } catch (usageError) {
+        // Se ocorrer erro na verificação de uso, apenas logar e continuar
+        console.error('Erro ao verificar uso da funcionalidade:', usageError);
+      }
+      
+      // Simular chamada à API de diagnóstico
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock diagnosis report
+      // Mock do relatório de diagnóstico
       const mockReport: DiagnosisReport = {
         clarityScore: 7.5,
         hookAnalysis: "O gancho inicial está adequado, mas poderia ser mais impactante. Considere usar uma pergunta provocativa ou uma estatística surpreendente.",
@@ -98,15 +141,31 @@ export const useDiagnosis = () => {
         ]
       };
       
+      // Incrementar contador de uso da funcionalidade
+      if (user) {
+        try {
+          await supabase.rpc('increment_usage_counter', {
+            p_user_uuid: user.id,
+            p_feature_type: 'diagnostics'
+          });
+        } catch (error) {
+          console.error('Erro ao incrementar contador de uso:', error);
+        }
+      }
+      
       setDiagnosisReport(mockReport);
+      
+      // Salvar diagnóstico no histórico
+      await saveToHistory(formattedAdText, mockReport);
+      
       toast({
         title: "Análise concluída!",
         description: "Seu anúncio foi analisado com sucesso.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Erro na análise",
-        description: "Tente novamente em alguns instantes.",
+        description: error.message || "Tente novamente em alguns instantes.",
         variant: "destructive",
       });
     } finally {
@@ -120,12 +179,12 @@ export const useDiagnosis = () => {
     setIsOptimizing(true);
 
     try {
-      console.log("Optimizing ad based on diagnosis:", diagnosisReport);
+      console.log("Otimizando anúncio com base no diagnóstico:", diagnosisReport);
       
-      // Simulate API call
+      // Simular chamada à API
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock optimized ads
+      // Mock de anúncios otimizados
       const mockOptimizedAds = [
         "🚨 Você sabia que 87% das pessoas falham no marketing digital? Descubra o método exato que transformou mais de 1.000 empreendedores em especialistas. ⏰ Últimas 24h com desconto! Clique agora! 👇",
         "❓ Por que seus concorrentes vendem mais que você? A resposta está no nosso curso comprovado por + de 500 alunos. 🔥 Apenas hoje: 50% OFF! Garantir minha vaga →",
@@ -134,7 +193,7 @@ export const useDiagnosis = () => {
       
       setOptimizedAds(mockOptimizedAds);
       
-      // Save to history
+      // Atualizar histórico com as versões otimizadas
       await saveToHistory(adText, diagnosisReport, mockOptimizedAds);
       
       toast({
@@ -160,6 +219,7 @@ export const useDiagnosis = () => {
     optimizedAds,
     isOptimizing,
     handleAnalyze,
-    handleOptimize
+    handleOptimize,
+    validateAndFormatText
   };
 };

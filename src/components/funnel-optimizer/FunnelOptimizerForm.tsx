@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowRight, Lightbulb, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from "react";
 
 interface FunnelOptimizerFormProps {
   adText: string;
@@ -27,10 +28,16 @@ export const FunnelOptimizerForm = ({
   canUseFeature = true,
   usageData
 }: FunnelOptimizerFormProps) => {
+  const [activeTab, setActiveTab] = useState<string>("ad");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAnalyze();
   };
+
+  // Validar limites de caracteres
+  const adTextExceedsLimit = adText.length > 2000;
+  const landingPageTextExceedsLimit = landingPageText.length > 5000;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -58,7 +65,7 @@ export const FunnelOptimizerForm = ({
         </Alert>
       )}
 
-      <Tabs defaultValue="ad" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ad">Texto do Anúncio</TabsTrigger>
           <TabsTrigger value="landing">Texto da Página de Destino</TabsTrigger>
@@ -80,14 +87,18 @@ export const FunnelOptimizerForm = ({
                   value={adText}
                   onChange={(e) => setAdText(e.target.value)}
                   placeholder="Ex: 🔥 Curso de Marketing Digital com 50% OFF! Aprenda a criar campanhas que convertem e aumente suas vendas. Últimas vagas disponíveis, inscreva-se agora!"
-                  className="min-h-[200px] resize-none"
-                  disabled={!canUseFeature}
+                  className={`min-h-[200px] resize-none ${adTextExceedsLimit ? 'border-red-500' : ''}`}
+                  disabled={!canUseFeature || isAnalyzing}
                 />
-                <div className="text-xs text-gray-500 flex justify-between">
-                  <span>Caracteres: {adText.length}</span>
+                <div className="flex justify-between">
+                  <span className={`text-xs ${adTextExceedsLimit ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                    Caracteres: {adText.length}{adTextExceedsLimit ? ' (limite máximo: 2000)' : ''}
+                  </span>
                   <span className="flex items-center gap-1">
                     <Lightbulb className="h-3 w-3 text-yellow-500" />
-                    Inclua título, descrição e CTA para uma análise completa
+                    <span className="text-xs text-gray-500">
+                      Inclua título, descrição e CTA para uma análise completa
+                    </span>
                   </span>
                 </div>
               </div>
@@ -98,9 +109,9 @@ export const FunnelOptimizerForm = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => document.querySelector('[data-value="landing"]')?.click()}
+              onClick={() => setActiveTab("landing")}
               className="flex items-center gap-2"
-              disabled={!canUseFeature}
+              disabled={!canUseFeature || isAnalyzing}
             >
               Próximo
               <ArrowRight className="h-4 w-4" />
@@ -124,14 +135,18 @@ export const FunnelOptimizerForm = ({
                   value={landingPageText}
                   onChange={(e) => setLandingPageText(e.target.value)}
                   placeholder="Ex: Curso Completo de Marketing Digital | Transforme seu negócio com estratégias comprovadas. Nosso curso abrange Facebook Ads, Google Ads, SEO e muito mais. Garanta 50% de desconto na inscrição até o final da semana."
-                  className="min-h-[300px] resize-none"
-                  disabled={!canUseFeature}
+                  className={`min-h-[300px] resize-none ${landingPageTextExceedsLimit ? 'border-red-500' : ''}`}
+                  disabled={!canUseFeature || isAnalyzing}
                 />
-                <div className="text-xs text-gray-500 flex justify-between">
-                  <span>Caracteres: {landingPageText.length}</span>
+                <div className="flex justify-between">
+                  <span className={`text-xs ${landingPageTextExceedsLimit ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                    Caracteres: {landingPageText.length}{landingPageTextExceedsLimit ? ' (limite máximo: 5000)' : ''}
+                  </span>
                   <span className="flex items-center gap-1">
                     <Lightbulb className="h-3 w-3 text-yellow-500" />
-                    Inclua os elementos principais da sua página para melhor análise
+                    <span className="text-xs text-gray-500">
+                      Inclua os elementos principais da sua página para melhor análise
+                    </span>
                   </span>
                 </div>
               </div>
@@ -142,17 +157,32 @@ export const FunnelOptimizerForm = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => document.querySelector('[data-value="ad"]')?.click()}
-              disabled={!canUseFeature}
+              onClick={() => setActiveTab("ad")}
+              disabled={!canUseFeature || isAnalyzing}
             >
               Voltar ao Anúncio
             </Button>
             
             <Button 
               type="submit" 
-              disabled={isAnalyzing || !adText.trim() || !landingPageText.trim() || !canUseFeature}
+              disabled={
+                isAnalyzing || 
+                !adText.trim() || 
+                !landingPageText.trim() || 
+                !canUseFeature || 
+                adTextExceedsLimit || 
+                landingPageTextExceedsLimit
+              }
             >
-              {isAnalyzing ? "Analisando..." : "Analisar Coerência"}
+              {isAnalyzing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Analisando...
+                </>
+              ) : "Analisar Coerência"}
             </Button>
           </div>
         </TabsContent>

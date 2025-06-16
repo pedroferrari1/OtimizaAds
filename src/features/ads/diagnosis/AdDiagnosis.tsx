@@ -1,20 +1,6 @@
-import { useDiagnosis } from "../hooks/useDiagnosis";
-import AdTextForm from "./components/AdTextForm";
-import DiagnosisReportComponent from "./components/DiagnosisReport";
-import OptimizedAds from "./components/OptimizedAds";
+import AdAnalyzer from "./components/AdAnalyzer";
 
 const AdDiagnosis = () => {
-  const {
-    adText,
-    setAdText,
-    isAnalyzing,
-    diagnosisReport,
-    optimizedAds,
-    isOptimizing,
-    handleAnalyze,
-    handleOptimize
-  } = useDiagnosis();
-
   return (
     <div className="space-y-6">
       <div>
@@ -24,22 +10,7 @@ const AdDiagnosis = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AdTextForm
-          adText={adText}
-          setAdText={setAdText}
-          isAnalyzing={isAnalyzing}
-          onAnalyze={handleAnalyze}
-        />
-
-        <DiagnosisReportComponent
-          diagnosisReport={diagnosisReport}
-          isOptimizing={isOptimizing}
-          onOptimize={handleOptimize}
-        />
-      </div>
-
-      <OptimizedAds optimizedAds={optimizedAds} />
+      <AdAnalyzer />
     </div>
   );
 };

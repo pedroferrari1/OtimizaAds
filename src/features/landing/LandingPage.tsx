@@ -1,9 +1,11 @@
-import LandingHeader from "./components/LandingHeader";
-import HeroSection from "./components/HeroSection";
-import FeaturesSection from "./components/FeaturesSection";
-import PricingSection from "./components/PricingSection";
-import CTASection from "./components/CTASection";
-import LandingFooter from "./components/LandingFooter";
+import {
+  LandingHeader,
+  HeroSection,
+  FeaturesSection,
+  PricingSection,
+  CTASection,
+  LandingFooter
+} from './components';
 
 const LandingPage = () => {
   return (

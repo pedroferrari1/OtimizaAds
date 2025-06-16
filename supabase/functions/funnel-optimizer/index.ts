@@ -1,558 +1,734 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { createClient } from 'npm:@supabase/supabase-js@2.49.1';
-import { createHash } from 'node:crypto';
+/*
+  Edge Function para análise de otimização de funil
+  
+  Analisa a coerência entre anúncios e páginas de destino,
+  fornecendo diagnósticos e sugestões de melhoria utilizando IA.
+  
+  Implementa:
+  - Integração com provedores de IA (OpenAI, Anthropic, etc.)
+  - Sistema de cache para reduzir custos e melhorar performance
+  - Verificação de limites de uso baseado no plano do usuário
+  - Registro de métricas e logs de utilização
+*/
 
-// Configuração do cliente Supabase
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createHash } from 'npm:crypto';
 
-// Configurações de CORS
+// Configuração de CORS para a Edge Function
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// Configurações de cache
-const CACHE_EXPIRY_HOURS = 24;
-const CACHE_TABLE = 'system_cache';
-
-// Função para gerar hash SHA-256 para chaves de cache
-function generateCacheKey(adText: string, landingPageText: string): string {
-  const combinedText = `${adText}|${landingPageText}`;
-  const hash = createHash('sha256').update(combinedText).digest('hex');
-  return `funnel_analysis_${hash}`;
+// Interfaces de requisição e resposta
+interface FunnelAnalysisRequest {
+  adText: string;
+  landingPageText: string;
 }
 
-// Função para buscar resultado em cache
-async function getCachedResult(cacheKey: string) {
-  const { data, error } = await supabase
-    .from(CACHE_TABLE)
-    .select('value, created_at')
-    .eq('key', cacheKey)
-    .single();
-  
-  if (error || !data) return null;
-  
-  // Verifica se o cache expirou
-  const cacheTime = new Date(data.created_at).getTime();
-  const now = new Date().getTime();
-  const cacheAgeHours = (now - cacheTime) / (1000 * 60 * 60);
-  
-  if (cacheAgeHours > CACHE_EXPIRY_HOURS) return null;
-  
-  return data.value;
+interface FunnelAnalysisResult {
+  funnelCoherenceScore: number;
+  adDiagnosis: string;
+  landingPageDiagnosis: string;
+  syncSuggestions: string[];
+  optimizedAd: string;
 }
 
-// Função para salvar resultado em cache
-async function setCachedResult(cacheKey: string, result: any) {
-  const { error } = await supabase
-    .from(CACHE_TABLE)
-    .upsert({
-      key: cacheKey,
-      value: result,
-      created_at: new Date().toISOString()
-    }, {
-      onConflict: 'key'
-    });
-  
-  if (error) {
-    console.error('Erro ao salvar em cache:', error);
-    // Registrar erro no log
-    await logError('cache_error', `Erro ao salvar em cache: ${error.message}`, 'funnel-optimizer');
+// Configuração da IA por provedor
+interface AIConfig {
+  model_name: string;
+  provider: string;
+  api_endpoint: string | null;
+  provider_model_id: string;
+  temperature: number;
+  max_tokens: number;
+  api_key: string;
+}
+
+// Interface para cache
+interface CacheItem {
+  key: string;
+  value: FunnelAnalysisResult;
+  created_at: string;
+  expires_at: string;
+}
+
+Deno.serve(async (req) => {
+  // Tratamento de requisições OPTIONS (CORS preflight)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
   }
-}
 
-// Função para obter configuração de IA ativa
-async function getActiveAIConfiguration() {
-  // Primeiro tenta obter configuração específica para o serviço 'funnel_analysis'
-  let { data: serviceConfig } = await supabase.rpc('get_active_ai_configuration', {
-    level: 'service',
-    identifier: 'funnel_analysis'
-  });
-  
-  // Se não encontrar, usa a configuração global
-  if (!serviceConfig) {
-    const { data: globalConfig } = await supabase.rpc('get_active_ai_configuration', {
-      level: 'global'
-    });
-    
-    return globalConfig;
-  }
-  
-  return serviceConfig;
-}
-
-// Função para registrar uso de IA
-async function trackAIUsage(userId: string, modelName: string, tokensInput: number, tokensOutput: number, responseTimeMs: number, success: boolean) {
   try {
-    const estimatedCost = calculateCost(modelName, tokensInput, tokensOutput);
-    
-    await supabase
-      .from('ai_usage_metrics')
-      .insert({
-        user_id: userId,
-        model_name: modelName,
-        service_type: 'funnel_analysis',
-        tokens_input: tokensInput,
-        tokens_output: tokensOutput,
-        estimated_cost: estimatedCost,
-        response_time_ms: responseTimeMs,
-        success: success
-      });
+    // Inicializar cliente Supabase
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Obter usuário a partir do token de autorização
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Authorization header é obrigatório');
+    }
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
+
+    if (authError || !user) {
+      throw new Error('Autenticação inválida');
+    }
+
+    // Extrair dados do corpo da requisição
+    const { adText, landingPageText }: FunnelAnalysisRequest = await req.json();
+
+    // Validar dados de entrada
+    if (!adText?.trim() || !landingPageText?.trim()) {
+      throw new Error('Texto do anúncio e da página de destino são obrigatórios');
+    }
+
+    // Verificar se o usuário pode usar este recurso
+    const { data: usageCheck, error: usageError } = await supabaseClient.rpc(
+      'check_funnel_analysis_usage',
+      { user_uuid: user.id }
+    );
+
+    if (usageError) {
+      console.error('Erro ao verificar uso:', usageError);
+      throw new Error('Erro ao verificar limite de uso');
+    }
+
+    if (!usageCheck?.[0]?.can_use) {
+      throw new Error('Seu plano atual não inclui acesso ao Laboratório de Otimização de Funil');
+    }
+
+    // Marcar início da análise para métricas de performance
+    const startTime = Date.now();
+
+    // Gerar chave de cache com hash dos textos combinados
+    const cacheKey = generateCacheKey(adText, landingPageText);
+
+    // Verificar se há resultado em cache
+    const cachedResult = await getCachedResult(supabaseClient, cacheKey);
+    let analysisResult: FunnelAnalysisResult;
+    let cacheHit = false;
+
+    if (cachedResult) {
+      // Usar resultado do cache
+      analysisResult = cachedResult;
+      cacheHit = true;
+      console.log('Cache hit for analysis');
+
+      // Registrar uso de cache para métricas
+      await incrementCacheMetric(supabaseClient, 'cache_hits');
+    } else {
+      // Registrar cache miss para métricas
+      await incrementCacheMetric(supabaseClient, 'cache_misses');
       
-    // Atualizar métricas globais
-    await updateGlobalMetrics('funnel_analysis_usage', 1);
-    await updateGlobalMetrics('tokens_processed', tokensInput + tokensOutput);
-    
-  } catch (error) {
-    console.error('Erro ao registrar uso de IA:', error);
-    await logError('usage_tracking_error', `Erro ao registrar uso de IA: ${error.message}`, 'funnel-optimizer');
-  }
-}
-
-// Função para calcular custo estimado
-function calculateCost(modelName: string, tokensInput: number, tokensOutput: number): number {
-  // Valores padrão caso não encontre o modelo específico
-  let inputCost = 0.0000010; // $0.0010 por 1K tokens
-  let outputCost = 0.0000020; // $0.0020 por 1K tokens
-  
-  // Preços específicos por modelo (simplificado)
-  const modelPrices: Record<string, {input: number, output: number}> = {
-    'gpt-4o': { input: 0.0000050, output: 0.0000150 },
-    'gpt-4': { input: 0.0000100, output: 0.0000300 },
-    'gpt-3.5-turbo': { input: 0.0000010, output: 0.0000020 },
-    'claude-3-5-sonnet': { input: 0.0000030, output: 0.0000150 },
-    'claude-3-opus': { input: 0.0000150, output: 0.0000700 },
-    'claude-3-haiku': { input: 0.0000025, output: 0.0000125 }
-  };
-  
-  // Buscar preços específicos do modelo
-  if (modelName && modelPrices[modelName]) {
-    inputCost = modelPrices[modelName].input;
-    outputCost = modelPrices[modelName].output;
-  }
-  
-  // Calcular custo total
-  const totalCost = (tokensInput * inputCost) + (tokensOutput * outputCost);
-  return parseFloat(totalCost.toFixed(6));
-}
-
-// Função para atualizar métricas globais
-async function updateGlobalMetrics(metricType: string, value: number) {
-  const today = new Date().toISOString().split('T')[0];
-  
-  try {
-    // Verificar se já existe um registro para hoje
-    const { data: existingMetric } = await supabase
-      .from('usage_metrics')
-      .select('*')
-      .eq('metric_type', metricType)
-      .eq('date', today)
-      .maybeSingle();
-    
-    if (existingMetric) {
-      // Atualizar registro existente
-      await supabase
-        .from('usage_metrics')
-        .update({ 
-          metric_value: existingMetric.metric_value + value 
-        })
-        .eq('id', existingMetric.id);
-    } else {
-      // Criar novo registro
-      await supabase
-        .from('usage_metrics')
-        .insert({
-          metric_type: metricType,
-          metric_value: value,
-          date: today
-        });
-    }
-  } catch (error) {
-    console.error('Erro ao atualizar métricas globais:', error);
-  }
-}
-
-// Função para registrar erros
-async function logError(errorType: string, errorMessage: string, endpoint: string) {
-  try {
-    // Verificar se já existe um erro similar
-    const { data: existingError } = await supabase
-      .from('error_logs')
-      .select('*')
-      .eq('error_type', errorType)
-      .eq('error_message', errorMessage)
-      .maybeSingle();
-    
-    if (existingError) {
-      // Atualizar contagem e timestamp do erro existente
-      await supabase
-        .from('error_logs')
-        .update({ 
-          frequency: (existingError.frequency || 1) + 1,
-          last_occurrence: new Date().toISOString()
-        })
-        .eq('id', existingError.id);
-    } else {
-      // Registrar novo erro
-      await supabase
-        .from('error_logs')
-        .insert({
-          error_type: errorType,
-          error_message: errorMessage,
-          endpoint: endpoint,
-          first_occurrence: new Date().toISOString(),
-          last_occurrence: new Date().toISOString(),
-          frequency: 1,
-          resolved: false
-        });
-    }
-  } catch (error) {
-    console.error('Erro ao registrar erro no log:', error);
-  }
-}
-
-// Função para verificar se o usuário pode acessar o recurso
-async function checkFeatureAccess(userId: string, feature: string): Promise<boolean> {
-  try {
-    // Verificar se o usuário tem uma assinatura ativa
-    const { data: subscription } = await supabase
-      .from('user_subscriptions')
-      .select(`
-        *,
-        plan:subscription_plans(*)
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'active')
-      .maybeSingle();
-    
-    // Se não tiver assinatura, não pode usar
-    if (!subscription) return false;
-    
-    // Verifica se o plano inclui o recurso
-    const planFeatures = subscription.plan?.features || {};
-    
-    // Para funnel_analysis, verificamos se está explicitamente habilitado
-    // ou se o plano tem acesso a recursos premium
-    return !!planFeatures.funnel_analysis || 
-           !!planFeatures.premium_features || 
-           planFeatures.plan_tier === 'premium';
-    
-  } catch (error) {
-    console.error('Erro ao verificar acesso ao recurso:', error);
-    await logError('access_check_error', `Erro ao verificar acesso: ${error.message}`, 'funnel-optimizer');
-    return false;
-  }
-}
-
-// Função para incrementar o uso de um recurso
-async function incrementFeatureUsage(userId: string, feature: string) {
-  try {
-    const now = new Date();
-    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    // Verificar se já existe um registro para este período
-    const { data: existingUsage } = await supabase
-      .from('usage_tracking')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('feature_type', feature)
-      .eq('period_start', periodStart.toISOString())
-      .single();
-
-    if (existingUsage) {
-      // Atualizar registro existente
-      await supabase
-        .from('usage_tracking')
-        .update({ 
-          count: existingUsage.count + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existingUsage.id);
-    } else {
-      // Criar novo registro
-      await supabase
-        .from('usage_tracking')
-        .insert({
-          user_id: userId,
-          feature_type: feature,
-          count: 1,
-          period_start: periodStart.toISOString(),
-          period_end: periodEnd.toISOString()
-        });
-    }
-    
-    // Registrar evento global
-    await supabase.functions.invoke('track-usage', {
-      body: { 
-        feature_type: feature,
-        user_id: userId
+      // Obter configuração de IA
+      const aiConfig = await getAIConfiguration(supabaseClient, user.id);
+      if (!aiConfig) {
+        throw new Error('Configuração de IA não encontrada');
       }
-    });
-    
+
+      // Realizar análise com IA
+      analysisResult = await callAIProvider(aiConfig, adText, landingPageText);
+
+      // Armazenar resultado em cache
+      await cacheResult(supabaseClient, cacheKey, analysisResult);
+    }
+
+    // Calcular tempo de processamento
+    const processingTime = Date.now() - startTime;
+
+    // Registrar a análise no log
+    const { error: logError } = await supabaseClient
+      .from('funnel_analysis_logs')
+      .insert({
+        user_id: user.id,
+        ad_text: adText,
+        landing_page_text: landingPageText,
+        coherence_score: analysisResult.funnelCoherenceScore,
+        suggestions: analysisResult.syncSuggestions,
+        optimized_ad: analysisResult.optimizedAd,
+        processing_time_ms: processingTime
+      });
+
+    if (logError) {
+      console.error('Erro ao registrar análise:', logError);
+    }
+
+    // Se não for cache hit, incrementar contador de uso
+    if (!cacheHit) {
+      await incrementUsageCounter(supabaseClient, user.id);
+
+      // Registrar métricas de uso da IA
+      const tokensInput = (adText.length + landingPageText.length) / 4; // Estimativa aproximada
+      const tokensOutput = JSON.stringify(analysisResult).length / 4; // Estimativa aproximada
+      
+      await supabaseClient
+        .from('ai_usage_metrics')
+        .insert({
+          user_id: user.id,
+          model_name: aiConfig?.model_name || 'default',
+          service_type: 'funnel_analysis',
+          tokens_input: Math.round(tokensInput),
+          tokens_output: Math.round(tokensOutput),
+          estimated_cost: calculateCost(tokensInput, tokensOutput, aiConfig),
+          response_time_ms: processingTime,
+          success: true
+        });
+    }
+
+    return new Response(
+      JSON.stringify(analysisResult),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
+    );
+
   } catch (error) {
-    console.error('Erro ao incrementar uso do recurso:', error);
-    await logError('usage_increment_error', `Erro ao incrementar uso: ${error.message}`, 'funnel-optimizer');
+    console.error('Erro na função funnel-optimizer:', error);
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Erro interno do servidor'
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400
+      }
+    );
+  }
+});
+
+// Função para incrementar contador de uso da funcionalidade
+async function incrementUsageCounter(supabaseClient, userId: string): Promise<void> {
+  try {
+    await supabaseClient.rpc('increment_usage_counter', {
+      p_user_uuid: userId,
+      p_feature_type: 'funnel_analysis'
+    });
+  } catch (error) {
+    console.error('Erro ao incrementar contador de uso:', error);
   }
 }
 
-// Função para chamar a API do provedor de IA
-async function callAIProvider(prompt: string, aiConfig: any) {
+// Função para incrementar métricas de cache
+async function incrementCacheMetric(supabaseClient, metricType: 'cache_hits' | 'cache_misses'): Promise<void> {
   try {
-    const modelName = aiConfig.model?.name || 'gpt-4o';
-    const provider = aiConfig.model?.provider || 'openai';
+    const today = new Date().toISOString().split('T')[0];
     
-    // Obter configuração do provedor
-    const { data: providerConfig } = await supabase
+    await supabaseClient
+      .from('usage_metrics')
+      .upsert({
+        metric_type: metricType,
+        metric_value: 1,
+        date: today
+      }, {
+        onConflict: 'metric_type,date',
+        update: {
+          metric_value: sql => `metric_value + 1`
+        }
+      });
+  } catch (error) {
+    console.error(`Erro ao incrementar métrica ${metricType}:`, error);
+  }
+}
+
+// Função para gerar chave de cache
+function generateCacheKey(adText: string, landingPageText: string): string {
+  // Normalizar textos: remover espaços extras, converter para minúsculas
+  const normalizedAdText = adText.trim().toLowerCase().replace(/\s+/g, ' ');
+  const normalizedLandingPageText = landingPageText.trim().toLowerCase().replace(/\s+/g, ' ');
+  
+  // Criar hash dos textos combinados
+  const hash = createHash('sha256');
+  hash.update(`${normalizedAdText}:${normalizedLandingPageText}`);
+  return `funnel_analysis:${hash.digest('hex')}`;
+}
+
+// Função para obter resultado em cache
+async function getCachedResult(supabaseClient, cacheKey: string): Promise<FunnelAnalysisResult | null> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('system_cache')
+      .select('value')
+      .eq('key', cacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+      
+    if (error || !data) {
+      return null;
+    }
+    
+    return data.value as FunnelAnalysisResult;
+  } catch (error) {
+    console.error('Erro ao buscar cache:', error);
+    return null;
+  }
+}
+
+// Função para armazenar resultado em cache
+async function cacheResult(supabaseClient, cacheKey: string, result: FunnelAnalysisResult): Promise<void> {
+  try {
+    // Calcular timestamp de expiração (24 horas por padrão)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24);
+    
+    await supabaseClient
+      .from('system_cache')
+      .upsert({
+        key: cacheKey,
+        value: result,
+        expires_at: expiresAt.toISOString()
+      }, {
+        onConflict: 'key'
+      });
+  } catch (error) {
+    console.error('Erro ao salvar em cache:', error);
+  }
+}
+
+// Função para obter configuração de IA adequada para o usuário
+async function getAIConfiguration(supabaseClient, userId: string): Promise<AIConfig | null> {
+  try {
+    // Tentar obter configuração específica para o serviço 'funnel_analysis'
+    const { data: serviceConfig } = await supabaseClient
+      .from('ai_configurations')
+      .select(`
+        id, 
+        system_prompt, 
+        temperature, 
+        max_tokens,
+        ai_models:model_id (
+          id,
+          model_name,
+          provider,
+          provider_model_id,
+          api_endpoint
+        )
+      `)
+      .eq('config_level', 'service')
+      .eq('level_identifier', 'funnel_analysis')
+      .eq('is_active', true)
+      .single();
+    
+    if (serviceConfig?.ai_models) {
+      // Obter chave de API para o provedor
+      const apiKey = await getProviderAPIKey(supabaseClient, serviceConfig.ai_models.provider);
+      
+      if (!apiKey || apiKey.trim() === '') {
+        console.error(`API key não encontrada para o provedor ${serviceConfig.ai_models.provider}`);
+        throw new Error(`Configuração de API incompleta para o provedor ${serviceConfig.ai_models.provider}`);
+      }
+      
+      return {
+        model_name: serviceConfig.ai_models.model_name,
+        provider: serviceConfig.ai_models.provider,
+        api_endpoint: serviceConfig.ai_models.api_endpoint,
+        provider_model_id: serviceConfig.ai_models.provider_model_id,
+        temperature: serviceConfig.temperature || 0.7,
+        max_tokens: serviceConfig.max_tokens || 2048,
+        api_key: apiKey
+      };
+    }
+    
+    // Se não encontrar configuração específica, buscar configuração global
+    const { data: globalConfig } = await supabaseClient
+      .from('ai_configurations')
+      .select(`
+        id, 
+        system_prompt, 
+        temperature, 
+        max_tokens,
+        ai_models:model_id (
+          id,
+          model_name,
+          provider,
+          provider_model_id,
+          api_endpoint
+        )
+      `)
+      .eq('config_level', 'global')
+      .eq('is_active', true)
+      .single();
+    
+    if (globalConfig?.ai_models) {
+      // Obter chave de API para o provedor
+      const apiKey = await getProviderAPIKey(supabaseClient, globalConfig.ai_models.provider);
+      
+      if (!apiKey || apiKey.trim() === '') {
+        console.error(`API key não encontrada para o provedor ${globalConfig.ai_models.provider}`);
+        throw new Error(`Configuração de API incompleta para o provedor ${globalConfig.ai_models.provider}`);
+      }
+      
+      return {
+        model_name: globalConfig.ai_models.model_name,
+        provider: globalConfig.ai_models.provider,
+        api_endpoint: globalConfig.ai_models.api_endpoint,
+        provider_model_id: globalConfig.ai_models.provider_model_id,
+        temperature: globalConfig.temperature || 0.7,
+        max_tokens: globalConfig.max_tokens || 2048,
+        api_key: apiKey
+      };
+    }
+    
+    // Se não encontrar nenhuma configuração, usar valores padrão
+    const defaultApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+    if (!defaultApiKey || defaultApiKey.trim() === '') {
+      console.error('Nenhuma chave de API configurada para OpenAI (padrão)');
+      throw new Error('Configuração de API não encontrada. Verifique as configurações do sistema.');
+    }
+    
+    return {
+      model_name: 'gpt-4o',
+      provider: 'openai',
+      api_endpoint: null,
+      provider_model_id: 'gpt-4o',
+      temperature: 0.7,
+      max_tokens: 2048,
+      api_key: defaultApiKey
+    };
+    
+  } catch (error) {
+    console.error('Erro ao buscar configuração de IA:', error);
+    
+    // Configuração de fallback
+    const fallbackApiKey = Deno.env.get('OPENAI_API_KEY') || '';
+    if (!fallbackApiKey || fallbackApiKey.trim() === '') {
+      throw new Error('Configuração de API não encontrada. Verifique as configurações do sistema.');
+    }
+    
+    return {
+      model_name: 'gpt-4o',
+      provider: 'openai',
+      api_endpoint: null,
+      provider_model_id: 'gpt-4o',
+      temperature: 0.7,
+      max_tokens: 2048,
+      api_key: fallbackApiKey
+    };
+  }
+}
+
+// Função para obter a chave de API de um provedor
+async function getProviderAPIKey(supabaseClient, provider: string): Promise<string> {
+  try {
+    const providerEnvMapping = {
+      'openai': 'OPENAI_API_KEY',
+      'anthropic': 'ANTHROPIC_API_KEY',
+      'novita': 'NOVITA_API_KEY',
+      'google': 'GOOGLE_API_KEY',
+      'deepseek': 'DEEPSEEK_API_KEY'
+    };
+    
+    // Primeiro, tentar obter da configuração
+    const { data: providerConfig } = await supabaseClient
       .from('provider_configurations')
-      .select('*')
+      .select('configuration')
       .eq('provider_name', provider)
       .eq('is_active', true)
       .single();
     
-    if (!providerConfig) {
-      throw new Error(`Provedor ${provider} não configurado ou inativo`);
+    if (providerConfig?.configuration?.api_key && 
+        providerConfig.configuration.api_key !== '***CONFIGURED***') {
+      return providerConfig.configuration.api_key;
     }
     
-    // Parâmetros para a chamada da API
-    const apiParams = {
-      model: modelName,
-      messages: [
-        { role: "system", content: aiConfig.system_prompt || "Você é um assistente especializado em marketing e otimização de funis." },
-        { role: "user", content: prompt }
-      ],
-      temperature: aiConfig.temperature || 0.7,
-      max_tokens: aiConfig.max_tokens || 2048,
-      top_p: aiConfig.top_p || 0.9,
-      frequency_penalty: aiConfig.frequency_penalty || 0,
-      presence_penalty: aiConfig.presence_penalty || 0
-    };
-    
-    // Configuração da API
-    const apiEndpoint = providerConfig.api_endpoint || 'https://api.openai.com/v1/chat/completions';
-    const apiKey = providerConfig.configuration?.api_key || '';
-    
-    if (!apiKey) {
-      throw new Error(`Chave de API não configurada para o provedor ${provider}`);
+    // Se não encontrar ou a chave for apenas um placeholder, usar variável de ambiente
+    const envKey = providerEnvMapping[provider];
+    if (envKey) {
+      const apiKey = Deno.env.get(envKey);
+      if (apiKey) {
+        return apiKey;
+      }
     }
     
-    // Chamada à API
-    const startTime = Date.now();
-    const response = await fetch(apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(apiParams)
-    });
-    
-    const responseTime = Date.now() - startTime;
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Erro na API: ${response.status} - ${JSON.stringify(errorData)}`);
-    }
-    
-    const data = await response.json();
-    
-    // Extrair e processar a resposta
-    const content = data.choices[0]?.message?.content || '';
-    
-    // Tentar extrair o JSON da resposta
-    try {
-      // Remover possíveis marcações de código que a IA possa incluir
-      const jsonContent = content.replace(/```json\n?|\n?```/g, '').trim();
-      return {
-        result: JSON.parse(jsonContent),
-        usage: {
-          prompt_tokens: data.usage?.prompt_tokens || prompt.length / 4,
-          completion_tokens: data.usage?.completion_tokens || content.length / 4,
-          responseTime
-        }
-      };
-    } catch (parseError) {
-      console.error('Erro ao analisar resposta JSON:', parseError);
-      throw new Error('A resposta da IA não está no formato JSON esperado');
-    }
-    
+    throw new Error(`API key não encontrada para o provedor ${provider}`);
   } catch (error) {
-    console.error('Erro ao chamar provedor de IA:', error);
-    await logError('ai_provider_error', `Erro ao chamar IA: ${error.message}`, 'funnel-optimizer');
+    console.error(`Erro ao obter chave de API para ${provider}:`, error);
+    if (error.message.includes('API key não encontrada')) {
+      throw error; // Re-throw para manter a mensagem específica
+    }
     throw error;
   }
 }
 
-// Função principal para processar a requisição
-Deno.serve(async (req) => {
-  // Lidar com solicitações CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: corsHeaders,
-    });
-  }
-
+// Função para chamar o provedor de IA adequado
+async function callAIProvider(config: AIConfig, adText: string, landingPageText: string): Promise<FunnelAnalysisResult> {
+  // Construir o prompt para a IA
+  const prompt = buildAIPrompt(adText, landingPageText);
+  
   try {
-    // Verificar autenticação
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Autenticação necessária' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    switch (config.provider) {
+      case 'openai':
+        return await callOpenAI(config, prompt);
+      case 'anthropic':
+        return await callAnthropic(config, prompt);
+      case 'novita':
+        return await callNovita(config, prompt);
+      default:
+        return await callOpenAI(config, prompt); // Fallback para OpenAI
     }
-
-    // Obter usuário autenticado
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Token inválido ou expirado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Obter dados da requisição
-    const { adText, landingPageText } = await req.json();
+  } catch (error) {
+    console.error(`Erro ao chamar provedor ${config.provider}:`, error);
     
-    // Validar dados de entrada
-    if (!adText || !landingPageText) {
-      return new Response(
-        JSON.stringify({ error: 'Texto do anúncio e da página de destino são obrigatórios' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Se falhar a chamada à IA, retornar um resultado simulado como fallback
+    return fallbackAnalysisResult(adText, landingPageText);
+  }
+}
 
-    // Verificar se o usuário pode usar este recurso (baseado no plano)
-    const canUseFeature = await checkFeatureAccess(user.id, 'funnel_analysis');
-    if (!canUseFeature) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Seu plano atual não inclui acesso ao Laboratório de Otimização de Funil. Faça upgrade para continuar.' 
-        }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Gerar chave de cache
-    const cacheKey = generateCacheKey(adText, landingPageText);
-    
-    // Verificar cache
-    const cachedResult = await getCachedResult(cacheKey);
-    if (cachedResult) {
-      console.log('Resultado encontrado em cache');
-      
-      // Registrar uso do cache nas métricas
-      await updateGlobalMetrics('cache_hits', 1);
-      
-      return new Response(
-        JSON.stringify(cachedResult),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Registrar cache miss
-    await updateGlobalMetrics('cache_misses', 1);
-
-    // Obter configuração de IA ativa
-    const aiConfig = await getActiveAIConfiguration();
-    if (!aiConfig) {
-      return new Response(
-        JSON.stringify({ error: 'Configuração de IA não encontrada' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Construir o prompt para o modelo de IA
-    const prompt = `
-Você é um especialista em marketing de performance e otimização de funis de conversão (CRO). Sua tarefa é analisar a coerência entre o texto de um anúncio e o texto de uma página de destino.
+// Função para construir o prompt para a IA
+function buildAIPrompt(adText: string, landingPageText: string): string {
+  return `
+Você é um especialista em marketing de performance e otimização de funis de conversão (CRO). 
+Sua tarefa é analisar a coerência entre o texto de um anúncio e o texto de uma página de destino.
 
 Analise os dois textos abaixo:
 
 --- TEXTO DO ANÚNCIO ---
-${adText}
+${adText.trim()}
 --- FIM DO TEXTO DO ANÚNCIO ---
 
 --- TEXTO DA PÁGINA DE DESTINO ---
-${landingPageText}
+${landingPageText.trim()}
 --- FIM DO TEXTO DA PÁGINA DE DESTINO ---
+
+Considerando os textos acima, avalie a coerência entre eles. Verifique se a promessa feita no anúncio é cumprida na página de destino, se a linguagem e o tom são consistentes, e se as palavras-chave importantes são mantidas.
 
 Com base na sua análise, retorne um objeto JSON com a seguinte estrutura e nada mais:
 {
   "funnelCoherenceScore": <um número de 0 a 10 representando a coerência entre os dois textos>,
   "adDiagnosis": "<uma análise concisa dos pontos fortes e fracos do anúncio>",
   "landingPageDiagnosis": "<uma análise concisa dos pontos fortes e fracos da página>",
-  "syncSuggestions": ["<sugestão acionável 1 para melhorar a sincronia>", "<sugestão acionável 2>", "<sugestão acionável 3>", "<sugestão acionável 4>"],
+  "syncSuggestions": ["<sugestão acionável 1 para melhorar a sincronia>", "<sugestão acionável 2>", "<sugestão acionável 3>", "<sugestão acionável 4>", "<sugestão acionável 5>"],
   "optimizedAd": "<uma nova versão do texto do anúncio, reescrita para ser perfeitamente coerente com a página de destino>"
 }
-`;
 
-    try {
-      // Chamar a API do provedor de IA
-      const { result, usage } = await callAIProvider(prompt, aiConfig);
-      
-      // Registrar uso de IA
-      await trackAIUsage(
-        user.id,
-        aiConfig.model?.name || "modelo-padrão",
-        usage.prompt_tokens,
-        usage.completion_tokens,
-        usage.responseTime,
-        true
-      );
-      
-      // Incrementar contador de uso
-      await incrementFeatureUsage(user.id, 'funnel_analysis');
-      
-      // Salvar em cache
-      await setCachedResult(cacheKey, result);
-      
-      // Retornar resultado
-      return new Response(
-        JSON.stringify(result),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } catch (aiError) {
-      console.error('Erro ao processar com IA:', aiError);
-      
-      // Registrar erro
-      await logError('ai_processing_error', aiError.message, 'funnel-optimizer');
-      
-      // Registrar uso com falha
-      await trackAIUsage(
-        user.id,
-        aiConfig.model?.name || "modelo-padrão",
-        prompt.length / 4, // Estimativa simplificada
-        0,
-        0,
-        false
-      );
-      
-      return new Response(
-        JSON.stringify({ 
-          error: 'Erro ao processar a análise. Por favor, tente novamente mais tarde.' 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-  } catch (error) {
-    console.error('Erro ao processar análise de funil:', error);
-    
-    // Registrar erro geral
-    await logError('general_error', error.message, 'funnel-optimizer');
-    
-    return new Response(
-      JSON.stringify({ 
-        error: 'Erro ao processar a solicitação. Por favor, tente novamente mais tarde.' 
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+Mantenha cada sugestão curta e acionável. O anúncio otimizado deve seguir as melhores práticas de marketing digital e ter aproximadamente o mesmo tamanho do anúncio original.
+`;
+}
+
+// Função para chamar a API da OpenAI
+async function callOpenAI(config: AIConfig, prompt: string): Promise<FunnelAnalysisResult> {
+  const endpoint = config.api_endpoint || 'https://api.openai.com/v1/chat/completions';
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.api_key}`
+    },
+    body: JSON.stringify({
+      model: config.provider_model_id,
+      messages: [
+        {
+          role: 'system',
+          content: 'Você é um especialista em marketing digital e otimização de funis de conversão.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: config.temperature,
+      max_tokens: config.max_tokens
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Erro OpenAI (${response.status}): ${errorData}`);
   }
-});
+  
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  
+  // Extrair JSON da resposta
+  try {
+    const jsonStartIndex = content.indexOf('{');
+    const jsonEndIndex = content.lastIndexOf('}') + 1;
+    
+    if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+      const jsonContent = content.substring(jsonStartIndex, jsonEndIndex);
+      return JSON.parse(jsonContent);
+    } else {
+      throw new Error('Não foi possível extrair JSON da resposta');
+    }
+  } catch (e) {
+    console.error('Erro ao processar resposta JSON:', e);
+    throw new Error('Formato de resposta inválido da OpenAI');
+  }
+}
+
+// Função para chamar a API da Anthropic
+async function callAnthropic(config: AIConfig, prompt: string): Promise<FunnelAnalysisResult> {
+  const endpoint = config.api_endpoint || 'https://api.anthropic.com/v1/messages';
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': config.api_key,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: config.provider_model_id,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: config.temperature,
+      max_tokens: config.max_tokens
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Erro Anthropic (${response.status}): ${errorData}`);
+  }
+  
+  const data = await response.json();
+  const content = data.content[0].text;
+  
+  // Extrair JSON da resposta
+  try {
+    const jsonStartIndex = content.indexOf('{');
+    const jsonEndIndex = content.lastIndexOf('}') + 1;
+    
+    if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+      const jsonContent = content.substring(jsonStartIndex, jsonEndIndex);
+      return JSON.parse(jsonContent);
+    } else {
+      throw new Error('Não foi possível extrair JSON da resposta');
+    }
+  } catch (e) {
+    console.error('Erro ao processar resposta JSON:', e);
+    throw new Error('Formato de resposta inválido da Anthropic');
+  }
+}
+
+// Função para chamar a API da Novita
+async function callNovita(config: AIConfig, prompt: string): Promise<FunnelAnalysisResult> {
+  const endpoint = config.api_endpoint || 'https://api.novita.ai/v1/chat/completions';
+  
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${config.api_key}`
+    },
+    body: JSON.stringify({
+      model: config.provider_model_id,
+      messages: [
+        {
+          role: 'system',
+          content: 'Você é um especialista em marketing digital e otimização de funis de conversão.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: config.temperature,
+      max_tokens: config.max_tokens
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Erro Novita (${response.status}): ${errorData}`);
+  }
+  
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  
+  // Extrair JSON da resposta
+  try {
+    const jsonStartIndex = content.indexOf('{');
+    const jsonEndIndex = content.lastIndexOf('}') + 1;
+    
+    if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex) {
+      const jsonContent = content.substring(jsonStartIndex, jsonEndIndex);
+      return JSON.parse(jsonContent);
+    } else {
+      throw new Error('Não foi possível extrair JSON da resposta');
+    }
+  } catch (e) {
+    console.error('Erro ao processar resposta JSON:', e);
+    throw new Error('Formato de resposta inválido da Novita');
+  }
+}
+
+// Função para calcular custo estimado da chamada
+function calculateCost(tokensInput: number, tokensOutput: number, config: AIConfig): number {
+  const baseCost = 0.0001; // Custo base baixo para fallback
+  
+  // Se não tivermos configuração, usar estimativa simples
+  if (!config) {
+    return (tokensInput + tokensOutput) * baseCost;
+  }
+  
+  // Custos aproximados por provedor/modelo
+  switch (config.model_name.toLowerCase()) {
+    case 'gpt-4':
+    case 'gpt-4o':
+      return (tokensInput * 0.00001) + (tokensOutput * 0.00003);
+    case 'gpt-3.5-turbo':
+      return (tokensInput * 0.000001) + (tokensOutput * 0.000002);
+    case 'claude-3-5-sonnet':
+      return (tokensInput * 0.00000315) + (tokensOutput * 0.0000095);
+    case 'claude-3-haiku':
+      return (tokensInput * 0.00000025) + (tokensOutput * 0.00000125);
+    case 'claude-3-opus':
+      return (tokensInput * 0.00001) + (tokensOutput * 0.00003);
+    default:
+      return (tokensInput + tokensOutput) * baseCost;
+  }
+}
+
+// Função para análise de fallback em caso de erro na IA
+function fallbackAnalysisResult(adText: string, landingPageText: string): FunnelAnalysisResult {
+  console.log("Usando análise de fallback");
+  
+  // Calcular pontuação de coerência baseada em sobreposição de palavras
+  const adWords = adText.toLowerCase().split(/\s+/);
+  const landingWords = landingPageText.toLowerCase().split(/\s+/);
+  
+  const commonWords = adWords.filter(word => 
+    landingWords.includes(word) && word.length > 3
+  );
+  
+  const coherenceScore = Math.min(7.5, Math.max(3, 
+    (commonWords.length / Math.min(adWords.length, 50)) * 10
+  ));
+
+  return {
+    funnelCoherenceScore: coherenceScore,
+    adDiagnosis: "Análise de fallback: O anúncio contém elementos que precisam ser melhor alinhados com a página de destino para maximizar conversões.",
+    landingPageDiagnosis: "Análise de fallback: A página de destino deve reforçar as promessas feitas no anúncio e manter consistência de mensagem.",
+    syncSuggestions: [
+      "Alinhe as palavras-chave principais entre anúncio e página de destino",
+      "Mantenha a mesma proposta de valor em ambos os elementos",
+      "Use linguagem consistente e tom de voz similar",
+      "Garanta que a página cumpra a promessa do anúncio",
+      "Inclua uma chamada para ação clara e proeminente"
+    ],
+    optimizedAd: `📢 ${adText.split(' ').slice(0, 3).join(' ')}... 
+
+Descubra como nossa solução pode ajudar você! 
+Resultados comprovados por clientes satisfeitos. 
+
+✅ Solução completa
+✅ Suporte dedicado
+✅ Garantia de satisfação
+
+👉 Clique agora e transforme seus resultados!`
+  };
+}

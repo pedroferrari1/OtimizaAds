@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, RefreshCw, Settings, CheckCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
 import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
-import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
 import SubscriptionDetails from "./components/SubscriptionDetails";
-import SubscriptionHistory from "./components/SubscriptionHistory";
-import PaymentMethodDisplay from "@/components/subscription/PaymentMethodDisplay";
+import SubscriptionPricing from "./components/SubscriptionPricing";
+import PaymentSection from "./components/PaymentSection";
+import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
 
 const Subscription = () => {
   const { 
@@ -110,50 +108,13 @@ const Subscription = () => {
         </p>
       </div>
 
+      {/* Notification Messages */}
       {showSuccess && (
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-green-800 text-lg">Assinatura realizada com sucesso!</h3>
-                <p className="text-green-700 mt-1">
-                  Sua assinatura foi processada e está ativa. Você já pode aproveitar todos os benefícios do seu plano.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4 bg-white hover:bg-white" 
-                  onClick={() => setShowSuccess(false)}
-                >
-                  Fechar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <SuccessNotification onClose={() => setShowSuccess(false)} />
       )}
 
       {showCanceled && (
-        <Card className="bg-yellow-50 border-yellow-200">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-1" />
-              <div>
-                <h3 className="font-semibold text-yellow-800 text-lg">Checkout cancelado</h3>
-                <p className="text-yellow-700 mt-1">
-                  Você cancelou o processo de checkout. Se precisar de ajuda ou tiver dúvidas, entre em contato com nosso suporte.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4 bg-white hover:bg-white" 
-                  onClick={() => setShowCanceled(false)}
-                >
-                  Fechar
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <CanceledNotification onClose={() => setShowCanceled(false)} />
       )}
 
       {user && userSubscription ? (
@@ -168,45 +129,85 @@ const Subscription = () => {
           />
 
           {/* All Plans */}
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Todos os Planos Disponíveis
-            </h2>
-            <SubscriptionPlans />
-          </div>
+          <SubscriptionPricing />
           
-          {/* Payment Method */}
+          {/* Payment Method & History */}
           {userSubscription && userSubscription.status === 'active' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <PaymentMethodDisplay
-                brand="visa" // Exemplo - idealmente viria do Stripe
-                last4="4242" // Exemplo - idealmente viria do Stripe
-                isActive={userSubscription.status === 'active'}
-                onManage={manageSubscription}
-              />
-              
-              <SubscriptionHistory />
-            </div>
+            <PaymentSection 
+              userSubscription={userSubscription}
+              onManage={manageSubscription}
+            />
           )}
         </div>
       ) : (
-        <div className="space-y-8">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              Escolha seu Plano de Assinatura
-            </h1>
-            <p className="text-xl text-gray-600">
-              {user ? 
-                "Você ainda não tem uma assinatura ativa." :
-                "Faça login para gerenciar sua assinatura."
-              }
-            </p>
-          </div>
-          <SubscriptionPlans />
-        </div>
+        <NoSubscriptionView user={user} />
       )}
     </div>
   );
 };
+
+// Componentes para diferentes estados da assinatura
+const SuccessNotification = ({ onClose }: { onClose: () => void }) => (
+  <Card className="bg-green-50 border-green-200">
+    <CardContent className="p-6">
+      <div className="flex items-start gap-4">
+        <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+        <div>
+          <h3 className="font-semibold text-green-800 text-lg">Assinatura realizada com sucesso!</h3>
+          <p className="text-green-700 mt-1">
+            Sua assinatura foi processada e está ativa. Você já pode aproveitar todos os benefícios do seu plano.
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-4 bg-white hover:bg-white" 
+            onClick={onClose}
+          >
+            Fechar
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const CanceledNotification = ({ onClose }: { onClose: () => void }) => (
+  <Card className="bg-yellow-50 border-yellow-200">
+    <CardContent className="p-6">
+      <div className="flex items-start gap-4">
+        <AlertTriangle className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-1" />
+        <div>
+          <h3 className="font-semibold text-yellow-800 text-lg">Checkout cancelado</h3>
+          <p className="text-yellow-700 mt-1">
+            Você cancelou o processo de checkout. Se precisar de ajuda ou tiver dúvidas, entre em contato com nosso suporte.
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-4 bg-white hover:bg-white" 
+            onClick={onClose}
+          >
+            Fechar
+          </Button>
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const NoSubscriptionView = ({ user }: { user: any }) => (
+  <div className="space-y-8">
+    <div className="text-center">
+      <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        Escolha seu Plano de Assinatura
+      </h1>
+      <p className="text-xl text-gray-600">
+        {user ? 
+          "Você ainda não tem uma assinatura ativa." :
+          "Faça login para gerenciar sua assinatura."
+        }
+      </p>
+    </div>
+    <SubscriptionPlans />
+  </div>
+);
 
 export default Subscription;
