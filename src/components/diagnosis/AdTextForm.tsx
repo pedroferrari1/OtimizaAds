@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,8 +22,8 @@ const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormPro
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="bg-white">
+      <CardHeader className="bg-white text-gray-900">
         <CardTitle>Texto do Anúncio</CardTitle>
         <CardDescription>
           Cole aqui o texto completo do anúncio que você quer analisar
@@ -33,7 +32,7 @@ const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormPro
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="adText">Texto do Anúncio</Label>
+            <Label htmlFor="adText" className="text-gray-700">Texto do Anúncio</Label>
             <Textarea
               id="adText"
               name="adText"
@@ -41,12 +40,7 @@ const AdTextForm = ({ adText, setAdText, isAnalyzing, onAnalyze }: AdTextFormPro
               value={adText}
               onChange={handleTextChange}
               rows={8}
-              className="min-h-[200px] resize-none w-full"
-              style={{ resize: 'none' }}
-              readOnly={false}
-              disabled={false}
-              autoComplete="off"
-              spellCheck={false}
+              className="min-h-[200px] bg-white border-gray-300 text-gray-900"
             />
             <div className="text-xs text-gray-500">
               Caracteres digitados: {adText.length}
