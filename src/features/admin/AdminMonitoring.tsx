@@ -9,6 +9,8 @@ import { PerformanceReports } from "@/components/admin/monitoring/PerformanceRep
 import { ErrorLogsViewer } from "@/components/admin/monitoring/ErrorLogsViewer";
 import { AIUsageReports } from "@/components/admin/monitoring/AIUsageReports";
 import { AlertManager } from "@/components/admin/monitoring/AlertManager";
+import { FunnelAnalyticsPanel } from "@/components/admin/monitoring/FunnelAnalyticsPanel";
+import { SystemHealthConfig } from "@/components/admin/monitoring/SystemHealthConfig";
 import { RefreshCw } from "lucide-react";
 
 const AdminMonitoring = () => {
@@ -62,12 +64,14 @@ const AdminMonitoring = () => {
         onValueChange={setActiveTab} 
         className="space-y-6"
       >
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="errors">Logs de Erro</TabsTrigger>
           <TabsTrigger value="ai-usage">Uso de IA</TabsTrigger>
+          <TabsTrigger value="funnel">Análise de Funil</TabsTrigger>
           <TabsTrigger value="alerts">Alertas</TabsTrigger>
+          <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -86,8 +90,16 @@ const AdminMonitoring = () => {
           <AIUsageReports />
         </TabsContent>
 
+        <TabsContent value="funnel">
+          <FunnelAnalyticsPanel />
+        </TabsContent>
+
         <TabsContent value="alerts">
           <AlertManager />
+        </TabsContent>
+        
+        <TabsContent value="config">
+          <SystemHealthConfig />
         </TabsContent>
       </Tabs>
     </div>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Users, BarChart3, Settings, Menu, LogOut, ShieldCheck, Activity, Brain, CreditCard } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth";
 
 const AdminLayout = () => {
@@ -26,22 +26,33 @@ const AdminLayout = () => {
   const NavItems = ({ mobile = false }: { mobile?: boolean }) => (
     <>
       {navigation.map((item) => {
-        const isActive = location.pathname === item.href;
-        return (
+        // Verifica se o caminho atual começa com o href do item (para subrotas)
+        const isActive = location.pathname.startsWith(item.href);
+        const linkElement = (
           <Link
-            key={item.name}
             to={item.href}
             className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               isActive
                 ? "bg-blue-100 text-blue-700"
                 : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
             } ${mobile ? "w-full" : ""}`}
-            onClick={() => mobile && setIsMobileMenuOpen(false)}
           >
             <item.icon className="h-4 w-4" />
             {item.name}
           </Link>
         );
+
+        // Só usa SheetClose quando está no mobile (dentro do Sheet)
+        if (mobile) {
+          return (
+            <SheetClose key={item.name} asChild>
+              {linkElement}
+            </SheetClose>
+          );
+        }
+
+        // Para desktop, retorna o link diretamente
+        return <div key={item.name}>{linkElement}</div>;
       })}
     </>
   );
@@ -61,6 +72,12 @@ const AdminLayout = () => {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-64">
                   <div className="flex flex-col gap-4 mt-6">
+                    <div className="px-3 py-2 mb-2">
+                      <h2 className="text-lg font-bold text-blue-600 flex items-center gap-2">
+                        <ShieldCheck className="h-5 w-5" />
+                        Admin OtimizaAds
+                      </h2>
+                    </div>
                     <NavItems mobile />
                   </div>
                 </SheetContent>

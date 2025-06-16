@@ -62,7 +62,16 @@ export const AlertManager = () => {
   const createAlertMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
       // Validar se threshold_value é um número válido
-      const thresholdValue = parseFloat(data.threshold_value);
+      let thresholdValue: number;
+      try {
+        thresholdValue = parseFloat(data.threshold_value);
+        if (isNaN(thresholdValue)) {
+          throw new Error("Valor limite deve ser um número válido");
+        }
+      } catch (e) {
+        throw new Error("Valor limite deve ser um número válido");
+      }
+      
       if (isNaN(thresholdValue)) {
         throw new Error("Valor limite deve ser um número válido");
       }
@@ -168,8 +177,18 @@ export const AlertManager = () => {
 
   const handleCreateAlert = () => {
     // Validar se threshold_value é um número válido
-    const thresholdValue = parseFloat(formData.threshold_value);
-    if (isNaN(thresholdValue)) {
+    let thresholdValue: number;
+    try {
+      thresholdValue = parseFloat(formData.threshold_value);
+      if (isNaN(thresholdValue)) {
+        toast({
+          title: "Erro",
+          description: "O valor limite deve ser um número válido.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (e) {
       toast({
         title: "Erro",
         description: "O valor limite deve ser um número válido.",
@@ -376,6 +395,7 @@ export const AlertManager = () => {
                   <div>
                     <Label htmlFor="threshold_value">Valor Limite</Label>
                     <Input
+                      required
                       id="threshold_value"
                       type="number"
                       step="0.01"
@@ -386,8 +406,11 @@ export const AlertManager = () => {
                       }}
                       placeholder="Ex: 5000"
                       min="0"
-                      required
+                      aria-required="true"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Valor numérico que acionará o alerta quando a condição for satisfeita
+                    </p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">

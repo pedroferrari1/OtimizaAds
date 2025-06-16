@@ -83,7 +83,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
 
       if (configuration) {
         // Atualizar configuração existente usando a nova função JSON
-        const { error } = await supabase.rpc('update_ai_configuration', {
+        const { error } = await supabase.rpc('update_ai_config_v3', {
           config_id: configuration.id,
           config_data: {
             config_level: data.config_level,

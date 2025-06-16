@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar, RefreshCw, Settings, CheckCircle, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
 import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
 import SubscriptionDetails from "./components/SubscriptionDetails";
@@ -22,7 +22,6 @@ const Subscription = () => {
     refreshSubscription 
   } = useSubscription();
   const { user } = useAuth();
-  const { toast } = useToast();
   const location = useLocation();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCanceled, setShowCanceled] = useState(false);

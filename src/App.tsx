@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ProtectedRoute, AdminProtectedRoute, Login, Register } from "@/features/auth";
 import { AdGenerator, AdDiagnosis } from "@/features/ads";
 import { AdminDashboard, AdminUsers, AdminSettings, AdminAIConfig, AdminMonitoring, AdminSubscriptions } from "@/features/admin";
+import FunnelOptimizer from "./pages/app/funnel-optimizer";
 import { LandingPage } from "@/features/landing";
 import { Dashboard } from "@/features/dashboard";
 import { History } from "@/features/history";
@@ -42,6 +43,7 @@ const App = () => (
                 <Route path="gerador" element={<AdGenerator />} />
                 <Route path="diagnostico" element={<AdDiagnosis />} />
                 <Route path="historico" element={<History />} />
+                <Route path="otimizador-funil" element={<FunnelOptimizer />} />
                 <Route path="assinatura" element={<Subscription />} />
               </Route>
 
