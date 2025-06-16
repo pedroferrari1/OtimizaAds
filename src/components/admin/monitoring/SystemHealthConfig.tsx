@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Save, RefreshCw, Database, Gauge, Cpu } from "lucide-react";
-import { FunnelOptimizerConfig } from "@/types/funnel-optimizer";
 
 export const SystemHealthConfig = () => {
   const [loading, setLoading] = useState(true);
@@ -35,15 +34,6 @@ export const SystemHealthConfig = () => {
     alert_threshold_error_rate_percent: 5
   });
   
-  // Configurações do Laboratório de Otimização de Funil
-  const [funnelConfig, setFunnelConfig] = useState<FunnelOptimizerConfig>({
-    enabled: true,
-    maxTokens: 2048,
-    temperature: 0.7,
-    cacheEnabled: true,
-    cacheExpiryHours: 24,
-    defaultModel: "gpt-4o"
-  });
 
   // Buscar configurações
   useEffect(() => {
@@ -58,7 +48,7 @@ export const SystemHealthConfig = () => {
       const { data, error } = await supabase
         .from('app_settings')
         .select('key, value')
-        .in('key', ['system_performance', 'system_monitoring', 'funnel_optimizer']);
+        .in('key', ['system_performance', 'system_monitoring']);
       
       if (error) throw error;
       
@@ -68,8 +58,6 @@ export const SystemHealthConfig = () => {
             setPerformanceConfig(item.value as any);
           } else if (item.key === 'system_monitoring') {
             setMonitoringConfig(item.value as any);
-          } else if (item.key === 'funnel_optimizer') {
-            setFunnelConfig(item.value as FunnelOptimizerConfig);
           }
         });
       }
@@ -106,11 +94,6 @@ export const SystemHealthConfig = () => {
           value: monitoringConfig,
           description: 'Configurações de monitoramento do sistema'
         },
-        {
-          key: 'funnel_optimizer',
-          value: funnelConfig,
-          description: 'Configurações do Laboratório de Otimização de Funil'
-        }
       ];
       
       // Salvar configurações
@@ -188,10 +171,9 @@ export const SystemHealthConfig = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="monitoring">Monitoramento</TabsTrigger>
-          <TabsTrigger value="funnel">Otimizador de Funil</TabsTrigger>
         </TabsList>
         
         <TabsContent value="performance" className="space-y-4 mt-4">
@@ -388,107 +370,6 @@ export const SystemHealthConfig = () => {
                   step="0.1"
                   value={monitoringConfig.alert_threshold_error_rate_percent}
                   onChange={(e) => setMonitoringConfig({...monitoringConfig, alert_threshold_error_rate_percent: parseFloat(e.target.value)})}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="funnel" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Configurações do Laboratório de Otimização de Funil
-              </CardTitle>
-              <CardDescription>
-                Configure o comportamento do analisador de funil
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="funnel_enabled">Recurso Ativo</Label>
-                  <p className="text-sm text-gray-500">
-                    Habilita ou desabilita o Laboratório de Otimização de Funil
-                  </p>
-                </div>
-                <Switch
-                  id="funnel_enabled"
-                  checked={funnelConfig.enabled}
-                  onCheckedChange={(checked) => setFunnelConfig({...funnelConfig, enabled: checked})}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="funnel_max_tokens">Tokens Máximos</Label>
-                  <Input
-                    id="funnel_max_tokens"
-                    type="number"
-                    min="512"
-                    max="8192"
-                    value={funnelConfig.maxTokens}
-                    onChange={(e) => setFunnelConfig({...funnelConfig, maxTokens: parseInt(e.target.value)})}
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="funnel_temperature">Temperatura</Label>
-                  <Input
-                    id="funnel_temperature"
-                    type="number"
-                    min="0"
-                    max="2"
-                    step="0.1"
-                    value={funnelConfig.temperature}
-                    onChange={(e) => setFunnelConfig({...funnelConfig, temperature: parseFloat(e.target.value)})}
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="funnel_default_model">Modelo Padrão</Label>
-                <Select 
-                  value={funnelConfig.defaultModel} 
-                  onValueChange={(value) => setFunnelConfig({...funnelConfig, defaultModel: value})}
-                >
-                  <SelectTrigger id="funnel_default_model">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                    <SelectItem value="gpt-4">GPT-4</SelectItem>
-                    <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                    <SelectItem value="claude-3-5-sonnet">Claude 3.5 Sonnet</SelectItem>
-                    <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                    <SelectItem value="claude-3-haiku">Claude 3 Haiku</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="funnel_cache_enabled">Cache Ativo</Label>
-                  <p className="text-sm text-gray-500">
-                    Habilita cache para análises de funil
-                  </p>
-                </div>
-                <Switch
-                  id="funnel_cache_enabled"
-                  checked={funnelConfig.cacheEnabled}
-                  onCheckedChange={(checked) => setFunnelConfig({...funnelConfig, cacheEnabled: checked})}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="funnel_cache_expiry_hours">Tempo de Expiração do Cache (horas)</Label>
-                <Input
-                  id="funnel_cache_expiry_hours"
-                  type="number"
-                  min="1"
-                  max="168"
-                  value={funnelConfig.cacheExpiryHours}
-                  onChange={(e) => setFunnelConfig({...funnelConfig, cacheExpiryHours: parseInt(e.target.value)})}
                 />
               </div>
             </CardContent>
