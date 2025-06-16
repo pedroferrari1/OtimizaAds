@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowRight, Lightbulb, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from "react";
 
 interface FunnelOptimizerFormProps {
   adText: string;
@@ -27,6 +28,8 @@ export const FunnelOptimizerForm = ({
   canUseFeature = true,
   usageData
 }: FunnelOptimizerFormProps) => {
+  const [activeTab, setActiveTab] = useState<string>("ad");
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onAnalyze();
@@ -62,7 +65,7 @@ export const FunnelOptimizerForm = ({
         </Alert>
       )}
 
-      <Tabs defaultValue="ad" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="ad">Texto do Anúncio</TabsTrigger>
           <TabsTrigger value="landing">Texto da Página de Destino</TabsTrigger>
@@ -106,7 +109,7 @@ export const FunnelOptimizerForm = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => document.querySelector('[data-value="landing"]')?.click()}
+              onClick={() => setActiveTab("landing")}
               className="flex items-center gap-2"
               disabled={!canUseFeature || isAnalyzing}
             >
@@ -154,7 +157,7 @@ export const FunnelOptimizerForm = ({
             <Button 
               type="button" 
               variant="outline" 
-              onClick={() => document.querySelector('[data-value="ad"]')?.click()}
+              onClick={() => setActiveTab("ad")}
               disabled={!canUseFeature || isAnalyzing}
             >
               Voltar ao Anúncio
