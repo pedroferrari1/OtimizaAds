@@ -1,4 +1,4 @@
-name: Node.js CI
+name: CI/CD OtimizaAds
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -19,7 +18,7 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
+      - name: Configurar Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -28,11 +27,46 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Rodar lint
+      - name: Verificar formatação e lint
         run: npm run lint
 
       - name: Build do projeto
         run: npm run build
 
-      - name: Rodar testes
-        run: npm test
+      - name: Executar testes (quando implementados)
+        run: echo "Testes serão executados quando implementados"
+        # Quando testes forem adicionados, descomente a linha abaixo
+        # run: npm test
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build do projeto
+        run: npm run build
+
+      # Quando estiver pronto para deploy, descomente e configure conforme necessário
+      # - name: Deploy para Netlify
+      #   uses: nwtgck/actions-netlify@v2
+      #   with:
+      #     publish-dir: './dist'
+      #     production-branch: main
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     deploy-message: "Deploy do commit ${{ github.sha }}"
+      #   env:
+      #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
