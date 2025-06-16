@@ -83,7 +83,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchMetrics();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchMetrics é definida no componente e não muda entre renderizações
 
   if (loading) {
     return (

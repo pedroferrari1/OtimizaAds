@@ -12,6 +12,7 @@ import { Eye, Search, Filter, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { Json } from "@/integrations/supabase/types";
 
 // Define type for audit log with admin profile
 type AuditLogWithProfile = {
@@ -20,8 +21,8 @@ type AuditLogWithProfile = {
   admin_user_id: string | null;
   change_reason: string | null;
   config_id: string | null;
-  new_values: any;
-  old_values: any;
+  new_values: Json;
+  old_values: Json;
   timestamp: string;
   ai_configurations?: {
     config_level: string;
@@ -121,7 +122,7 @@ export const ConfigAuditLog = () => {
     }
   };
 
-  const formatJsonDiff = (oldValues: any, newValues: any) => {
+  const formatJsonDiff = (oldValues: Json | null, newValues: Json | null) => {
     if (!oldValues && !newValues) return null;
 
     return (

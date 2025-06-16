@@ -27,6 +27,7 @@ export const AIUsageReports = () => {
   const [timeRange, setTimeRange] = useState("7d");
   // Use "all" como valor inicial para todos os modelos
   const [selectedModel, setSelectedModel] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Calculate date range based on selection
   const getDateRange = () => {
@@ -85,7 +86,14 @@ export const AIUsageReports = () => {
   };
 
   // Group by model for analysis
-  const modelStats = usageMetrics?.reduce((acc, metric) => {
+  const modelStats = usageMetrics?.reduce((acc: Record<string, {
+    requests: number;
+    tokensInput: number;
+    tokensOutput: number;
+    cost: number;
+    responseTime: number;
+    successCount: number;
+  }>, metric) => {
     const model = metric.model_name;
     if (!acc[model]) {
       acc[model] = {
@@ -106,7 +114,7 @@ export const AIUsageReports = () => {
     if (metric.success) acc[model].successCount++;
     
     return acc;
-  }, {} as Record<string, any>) || {};
+  }, {}) || {};
 
   // Get unique models for filter
   const models = [...new Set(usageMetrics?.map(m => m.model_name) || [])];
@@ -114,6 +122,7 @@ export const AIUsageReports = () => {
   const exportReport = () => {
     if (!usageMetrics) return;
 
+    setIsExporting(true);
     const csvContent = [
       [
         "Timestamp",
@@ -142,10 +151,11 @@ export const AIUsageReports = () => {
     const a = document.createElement("a");
     a.href = url;
     // Inclui "Todos os modelos" caso selectedModel seja "all"
-    let labelModel = selectedModel === "all" ? "todos-modelos" : selectedModel;
+    const labelModel = selectedModel === "all" ? "todos-modelos" : selectedModel;
     a.download = `ai-usage-report-${labelModel}-${timeRange}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    setIsExporting(false);
   };
 
   return (

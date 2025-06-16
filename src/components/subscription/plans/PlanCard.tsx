@@ -34,8 +34,8 @@ const PlanCard = ({
     }).format(price / 100);
   };
 
-  const getFeatureList = (features: Record<string, any>) => {
-    const featureMap: Record<string, (val: any) => string | null> = {
+  const getFeatureList = (features: Record<string, unknown>) => {
+    const featureMap: Record<string, (val: unknown) => string | null> = {
       generations: (val: number) => val === -1 ? 'Gerações ilimitadas' : `${val} gerações de anúncios`,
       diagnostics: (val: number) => val === -1 ? 'Diagnósticos ilimitados' : `${val} diagnósticos`,
       models: (val: string) => val === 'all' ? 'Todos os modelos' : 'Modelos básicos',

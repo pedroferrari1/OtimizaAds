@@ -1,28 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { UserProfile, AuthContextType } from '@/types/auth';
 import { toast } from '@/hooks/use-toast';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  full_name: string | null;
-  role: 'USER' | 'ADMIN';
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: UserProfile | null;
-  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
-  loading: boolean;
-  isAdmin: boolean;
-  refreshProfile: () => Promise<void>;
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -137,8 +117,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      return { error };
-    } catch (error: any) {
+      return { error: error as unknown };
+    } catch (error: unknown) {
       console.error('Signup exception:', error);
       return { error };
     }
@@ -160,8 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
 
-      return { error };
-    } catch (error: any) {
+      return { error: error as unknown };
+    } catch (error: unknown) {
       console.error('Login exception:', error);
       return { error };
     }
@@ -174,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       toast({
         title: "Erro no logout",

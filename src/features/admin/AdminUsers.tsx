@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { UserProfile } from "@/types/auth";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { AlertTriangle, UserCheck, UserX } from "lucide-react";
 
-interface User {
+interface User extends UserProfile {
   id: string;
   email: string;
   full_name: string | null;
@@ -50,7 +51,7 @@ const AdminUsers = () => {
       }
 
       setUsers(data || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao buscar usuários:', error);
       toast({
         title: "Erro ao carregar usuários",
@@ -66,7 +67,7 @@ const AdminUsers = () => {
     if (!actionDialog.user) return;
 
     try {
-      let updateData: any = {};
+      let updateData: Partial<User> = {};
 
       switch (actionDialog.type) {
         case 'makeAdmin':
@@ -108,7 +109,7 @@ const AdminUsers = () => {
       // Atualizar lista
       await fetchUsers();
       setActionDialog({ open: false, type: 'activate', user: null });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar usuário:', error);
       toast({
         title: "Erro ao atualizar usuário",
@@ -130,12 +131,12 @@ const AdminUsers = () => {
     {
       key: 'full_name' as keyof User,
       header: 'Nome',
-      render: (value: any) => value || 'N/A',
+      render: (value: string | null) => value || 'N/A',
     },
     {
       key: 'role' as keyof User,
       header: 'Função',
-      render: (value: any) => (
+      render: (value: string) => (
         <Badge variant={value === 'ADMIN' ? 'default' : 'secondary'}>
           {value === 'ADMIN' ? 'Administrador' : 'Usuário'}
         </Badge>
@@ -144,12 +145,12 @@ const AdminUsers = () => {
     {
       key: 'created_at' as keyof User,
       header: 'Data de Cadastro',
-      render: (value: any) => new Date(value).toLocaleDateString('pt-BR'),
+      render: (value: string) => new Date(value).toLocaleDateString('pt-BR'),
     },
     {
       key: 'id' as keyof User,
       header: 'Ações',
-      render: (value: any, user: User) => (
+      render: (_value: string, user: User) => (
         <div className="flex gap-2">
           {user.role === 'USER' ? (
             <Button

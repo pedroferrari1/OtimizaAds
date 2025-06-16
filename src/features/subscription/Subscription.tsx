@@ -59,13 +59,15 @@ const Subscription = () => {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
-  }, [location]);
+  }, [location, refreshSubscription]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // Adicionando refreshSubscription como dependência
 
   useEffect(() => {
     if (user) {
       fetchUsageData();
     }
-  }, [user, userSubscription]);
+  }, [user, userSubscription, checkFeatureUsage]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // Adicionando checkFeatureUsage como dependência
 
   const fetchUsageData = async () => {
     try {
@@ -147,7 +149,7 @@ const Subscription = () => {
 };
 
 // Componentes para diferentes estados da assinatura
-const SuccessNotification = ({ onClose }: { onClose: () => void }) => (
+const SuccessNotification = ({ onClose }: { onClose: () => void }): JSX.Element => (
   <Card className="bg-green-50 border-green-200">
     <CardContent className="p-6">
       <div className="flex items-start gap-4">

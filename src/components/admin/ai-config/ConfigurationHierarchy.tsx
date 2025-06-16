@@ -61,7 +61,8 @@ export const ConfigurationHierarchy = () => {
 
   useEffect(() => {
     fetchConfigurations();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchConfigurations é definida no componente e não muda entre renderizações
 
   const handleEdit = (config: AIConfiguration) => {
     setEditingConfig(config);

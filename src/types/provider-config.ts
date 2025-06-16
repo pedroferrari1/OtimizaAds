@@ -43,8 +43,7 @@ interface GeminiConfig extends ProviderConfiguration {
 /**
  * Interface para configuração de provedor DeepSeek
  */
-interface DeepSeekConfig extends ProviderConfiguration {
-}
+type DeepSeekConfig = ProviderConfiguration;
 
 /**
  * Interface para configuração de provedor compatível com OpenAI
@@ -54,14 +53,14 @@ interface OpenAICompatibleConfig extends ProviderConfiguration {
 }
 
 // Type guard para verificar se a configuração é válida
-const isProviderConfiguration = (config: any): config is ProviderConfiguration => {
+const isProviderConfiguration = (config: unknown): config is ProviderConfiguration => {
   return typeof config === 'object' && config !== null;
 };
 
 /**
  * Extrai a configuração de provedor de um objeto genérico
  */
-export const getProviderConfig = (config: any): ProviderConfiguration => {
+export const getProviderConfig = (config: unknown): ProviderConfiguration => {
   if (isProviderConfiguration(config)) {
     return config;
   }

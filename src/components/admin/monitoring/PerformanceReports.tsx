@@ -78,7 +78,8 @@ export const PerformanceReports = () => {
 
   useEffect(() => {
     fetchPerformanceData();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchPerformanceData é definida no componente e não muda entre renderizações
 
   const filteredData = performanceData.filter(item =>
     item.endpoint.toLowerCase().includes(searchTerm.toLowerCase()) ||

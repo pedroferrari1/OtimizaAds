@@ -22,13 +22,14 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getProviderConfig, type ProviderConfiguration } from "@/types/provider-config";
+import type { Json } from "@/integrations/supabase/types";
 
 type ProviderConfigurationTable = {
   id: string;
   display_name: string;
   provider_name: string;
   api_endpoint: string | null;
-  configuration: any;
+  configuration: Json;
   is_active: boolean;
   created_at: string;
   updated_at: string;

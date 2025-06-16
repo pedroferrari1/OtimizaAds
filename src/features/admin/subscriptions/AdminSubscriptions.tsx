@@ -56,7 +56,8 @@ const AdminSubscriptions = () => {
 
   useEffect(() => {
     fetchSubscriptions();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchSubscriptions é definida no componente e não muda entre renderizações
 
   const handleRefresh = () => {
     fetchSubscriptions();

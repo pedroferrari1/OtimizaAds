@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/features/auth';
 import { useToast } from '@/hooks/use-toast';
 import { SubscriptionPlan, UserSubscription, FeatureUsage } from '@/types/subscription';
@@ -11,6 +11,23 @@ export const useSubscription = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Buscar planos de assinatura
+  const fetchPlans = useCallback(async () => {
+    const plansData = await subscriptionService.fetchPlans();
+    setPlans(plansData);
+  }, []);
+
+  // Buscar assinatura do usuário
+  const fetchUserSubscription = useCallback(async () => {
+    if (!user) {
+      setUserSubscription(null);
+      return;
+    }
+
+    const subscription = await subscriptionService.fetchUserSubscription(user.id);
+    setUserSubscription(subscription);
+  }, [user]);
+
   // Carregar dados ao inicializar
   useEffect(() => {
     const loadData = async () => {
@@ -20,24 +37,7 @@ export const useSubscription = () => {
     };
 
     loadData();
-  }, [user]);
-
-  // Buscar planos de assinatura
-  const fetchPlans = async () => {
-    const plansData = await subscriptionService.fetchPlans();
-    setPlans(plansData);
-  };
-
-  // Buscar assinatura do usuário
-  const fetchUserSubscription = async () => {
-    if (!user) {
-      setUserSubscription(null);
-      return;
-    }
-
-    const subscription = await subscriptionService.fetchUserSubscription(user.id);
-    setUserSubscription(subscription);
-  };
+  }, [fetchPlans, fetchUserSubscription]);
 
   // Verificar uso de funcionalidade
   const checkFeatureUsage = async (feature: string): Promise<FeatureUsage | null> => {

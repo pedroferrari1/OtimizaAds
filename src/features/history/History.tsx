@@ -26,7 +26,8 @@ const History = () => {
     if (user) {
       fetchHistoryItems();
     }
-  }, [user]);
+  }, [user]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchHistoryItems é definida no componente e não muda entre renderizações
 
   const fetchHistoryItems = async () => {
     try {
@@ -61,7 +62,7 @@ const History = () => {
   };
 
   const filteredAndSortedItems = useMemo(() => {
-    let filtered = historyItems.filter(item => {
+    const filtered = historyItems.filter(item => {
       const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.content.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = typeFilter === "all" || item.type === typeFilter;

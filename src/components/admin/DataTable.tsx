@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,7 +8,7 @@ import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 interface Column<T> {
   key: keyof T;
   header: string;
-  render?: (value: any, row: T) => React.ReactNode;
+  render?: (value: unknown, row: T) => ReactNode;
 }
 
 interface DataTableProps<T> {
@@ -21,7 +21,7 @@ interface DataTableProps<T> {
   pageSize?: number;
 }
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T extends Record<string, unknown>>({
   data,
   columns,
   searchKey,

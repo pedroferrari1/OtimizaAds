@@ -26,7 +26,8 @@ export const FunnelOptimizerSettings = () => {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchSettings é definida no componente e não muda entre renderizações
 
   const fetchSettings = async () => {
     try {

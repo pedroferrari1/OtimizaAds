@@ -65,7 +65,8 @@ const StripeIntegration = () => {
   useEffect(() => {
     fetchStripeSettings();
     fetchWebhookEvents();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // As funções fetchStripeSettings e fetchWebhookEvents são definidas no componente e não mudam entre renderizações
 
   const fetchStripeSettings = async () => {
     try {

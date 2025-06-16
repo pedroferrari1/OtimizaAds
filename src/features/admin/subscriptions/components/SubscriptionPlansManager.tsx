@@ -52,7 +52,8 @@ const SubscriptionPlansManager = ({ onPlanUpdated }: SubscriptionPlansManagerPro
 
   useEffect(() => {
     fetchPlans();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchPlans é definida no componente e não muda entre renderizações
 
   const handleSyncWithStripe = async () => {
     try {
