@@ -9,35 +9,36 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-interface AIModel {
-  id: string;
-  model_name: string;
-  provider: string;
+interface AIConfiguration {
+  id?: string;
+  config_level: string;
+  level_identifier?: string;
+  model_id?: string;
+  system_prompt?: string;
+  is_active: boolean;
 }
 
 interface ConfigurationFormProps {
-  configuration?: any;
+  configuration?: AIConfiguration;
   onClose: () => void;
   onSave: () => void;
 }
 
 export const ConfigurationForm = ({ configuration, onClose, onSave }: ConfigurationFormProps) => {
-  const [models, setModels] = useState<AIModel[]>([]);
-  const [formData, setFormData] = useState({
+  // Estado para armazenar os modelos disponíveis
+  const [models, setModels] = useState<{id: string; model_name: string; provider: { display_name: string }}[]>([]);
+  // Estado para armazenar os dados do formulário
+  const [formData, setFormData] = useState<AIConfiguration>({
     config_level: 'global',
     level_identifier: '',
     model_id: '',
     system_prompt: '',
-    temperature: 0.7,
-    max_tokens: 2048,
-    top_p: 0.9,
-    frequency_penalty: 0,
-    presence_penalty: 0,
     is_active: true,
   });
   const [loading, setLoading] = useState(false);
   const [changeReason, setChangeReason] = useState('');
 
+  // Carregar modelos e configuração inicial
   useEffect(() => {
     fetchModels();
     if (configuration) {
@@ -46,21 +47,23 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
         level_identifier: configuration.level_identifier || '',
         model_id: configuration.model_id || '',
         system_prompt: configuration.system_prompt || '',
-        temperature: configuration.temperature,
-        max_tokens: configuration.max_tokens,
-        top_p: configuration.top_p,
-        frequency_penalty: configuration.frequency_penalty,
-        presence_penalty: configuration.presence_penalty,
         is_active: configuration.is_active,
       });
     }
   }, [configuration]);
 
+  // Buscar modelos disponíveis
   const fetchModels = async () => {
     try {
       const { data, error } = await supabase
         .from('ai_models')
-        .select('*')
+        .select(`
+          id, 
+          model_name,
+          provider:provider_id (
+            display_name
+          )
+        `)
         .eq('is_active', true)
         .order('model_name');
 
@@ -71,18 +74,20 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
     }
   };
 
+  // Enviar formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // Preparar dados
       const data = {
         ...formData,
         level_identifier: formData.level_identifier || null
       };
 
-      if (configuration) {
-        // Atualizar configuração existente usando a nova função JSON
+      if (configuration?.id) {
+        // Atualizar configuração existente usando a função RPC
         const { error } = await supabase.rpc('update_ai_config_v3', {
           config_id: configuration.id,
           config_data: {
@@ -90,11 +95,6 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
             level_identifier: data.level_identifier,
             model_id: data.model_id,
             system_prompt: data.system_prompt,
-            temperature: data.temperature,
-            max_tokens: data.max_tokens,
-            top_p: data.top_p,
-            frequency_penalty: data.frequency_penalty,
-            presence_penalty: data.presence_penalty,
             is_active: data.is_active
           },
           change_reason: changeReason || 'Atualização via painel administrativo'
@@ -189,7 +189,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
               <SelectContent>
                 {models.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
-                    {model.model_name} ({model.provider})
+                    {model.model_name} ({model.provider?.display_name})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -205,74 +205,6 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
               placeholder="Digite o prompt do sistema..."
               rows={4}
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="temperature">Temperatura</Label>
-              <Input
-                id="temperature"
-                type="number"
-                min="0"
-                max="2"
-                step="0.1"
-                value={formData.temperature}
-                onChange={(e) => setFormData(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="max_tokens">Max Tokens</Label>
-              <Input
-                id="max_tokens"
-                type="number"
-                min="1"
-                max="8192"
-                value={formData.max_tokens}
-                onChange={(e) => setFormData(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="top_p">Top P</Label>
-              <Input
-                id="top_p"
-                type="number"
-                min="0"
-                max="1"
-                step="0.1"
-                value={formData.top_p}
-                onChange={(e) => setFormData(prev => ({ ...prev, top_p: parseFloat(e.target.value) }))}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="frequency_penalty">Frequency Penalty</Label>
-              <Input
-                id="frequency_penalty"
-                type="number"
-                min="-2"
-                max="2"
-                step="0.1"
-                value={formData.frequency_penalty}
-                onChange={(e) => setFormData(prev => ({ ...prev, frequency_penalty: parseFloat(e.target.value) }))}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="presence_penalty">Presence Penalty</Label>
-              <Input
-                id="presence_penalty"
-                type="number"
-                min="-2"
-                max="2"
-                step="0.1"
-                value={formData.presence_penalty}
-                onChange={(e) => setFormData(prev => ({ ...prev, presence_penalty: parseFloat(e.target.value) }))}
-              />
-            </div>
           </div>
           
           <div>
