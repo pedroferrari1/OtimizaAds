@@ -89,15 +89,15 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
       if (configuration?.id) {
         // Atualizar configuração existente usando a função RPC
         const { error } = await supabase.rpc('update_ai_config_v3', {
-          config_id: configuration.id,
-          config_data: {
+          p_config_id: configuration.id,
+          p_config_data: {
             config_level: data.config_level,
             level_identifier: data.level_identifier,
             model_id: data.model_id,
             system_prompt: data.system_prompt,
             is_active: data.is_active
           },
-          change_reason: changeReason || 'Atualização via painel administrativo'
+          p_change_reason: changeReason || 'Atualização via painel administrativo'
         });
 
         if (error) throw error;
