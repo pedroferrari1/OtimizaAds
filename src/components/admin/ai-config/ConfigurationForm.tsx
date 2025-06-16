@@ -82,20 +82,24 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
       };
 
       if (configuration) {
-        // Atualizar configuração existente
-        const { error } = await supabase.rpc('update_ai_config_v2', {
-          p_config_id: configuration.id,
-          p_config_level: data.config_level,
-          p_model_id: data.model_id,
-          p_system_prompt: data.system_prompt,
-          p_temperature: data.temperature,
-          p_max_tokens: data.max_tokens,
-          p_top_p: data.top_p,
-          p_frequency_penalty: data.frequency_penalty,
-          p_presence_penalty: data.presence_penalty,
-          p_is_active: data.is_active
+        // Atualizar configuração existente usando a nova função JSON
+        const { error } = await supabase.rpc('update_ai_configuration', {
+          config_id: configuration.id,
+          config_data: {
+            config_level: data.config_level,
+            level_identifier: data.level_identifier,
+            model_id: data.model_id,
+            system_prompt: data.system_prompt,
+            temperature: data.temperature,
+            max_tokens: data.max_tokens,
+            top_p: data.top_p,
+            frequency_penalty: data.frequency_penalty,
+            presence_penalty: data.presence_penalty,
+            is_active: data.is_active
+          },
+          change_reason: changeReason || 'Atualização via painel administrativo'
         });
-        
+
         if (error) throw error;
         
         toast({

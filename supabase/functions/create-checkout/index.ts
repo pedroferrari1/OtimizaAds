@@ -7,17 +7,15 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 );
 
-const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY');
-if (!stripeSecret) {
-  console.error('STRIPE_SECRET_KEY não configurada');
-}
+const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY') ?? '';
+console.log('STRIPE_SECRET_KEY configurada:', !!stripeSecret);
 
-const stripe = stripeSecret ? new Stripe(stripeSecret, {
+const stripe = new Stripe(stripeSecret, {
   appInfo: {
     name: 'OtimizaAds',
     version: '1.0.0',
   },
-}) : null;
+});
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,7 +38,8 @@ Deno.serve(async (req) => {
       console.error('Stripe não configurado - STRIPE_SECRET_KEY ausente');
       return new Response(
         JSON.stringify({ 
-          error: 'Serviço de pagamento não configurado. Entre em contato com o suporte.' 
+          error: 'Serviço de pagamento não configurado. Entre em contato com o suporte.',
+          details: 'STRIPE_SECRET_KEY não está configurada no ambiente'
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

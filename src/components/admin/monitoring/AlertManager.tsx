@@ -73,7 +73,7 @@ export const AlertManager = () => {
           alert_name: data.alert_name,
           metric_type: data.metric_type,
           comparison_operator: data.comparison_operator,
-          threshold_value: thresholdValue,
+          threshold_value: thresholdValue || 0,
           notification_method: data.notification_method,
           notification_target: data.notification_target,
           is_active: true,
