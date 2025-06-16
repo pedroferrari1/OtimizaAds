@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, History, Menu, LogOut, BarChart3, CreditCard } from "lucide-react";
+import { Users, FileText, History, Menu, LogOut, BarChart3, CreditCard, GitCompare } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/features/auth";
 
@@ -14,6 +14,7 @@ const AppLayout = () => {
     { name: "Dashboard", href: "/app/dashboard", icon: BarChart3 },
     { name: "Gerador", href: "/app/gerador", icon: FileText },
     { name: "Diagnóstico", href: "/app/diagnostico", icon: Users },
+    { name: "Otimizador de Funil", href: "/app/otimizador-funil", icon: GitCompare },
     { name: "Histórico", href: "/app/historico", icon: History },
     { name: "Assinatura", href: "/app/assinatura", icon: CreditCard },
   ];

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Search, BarChart3 } from "lucide-react";
+import { PlusCircle, Search, BarChart3, GitCompare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 
@@ -49,6 +49,23 @@ const Dashboard = () => {
           <CardContent>
             <Button asChild variant="outline" className="w-full">
               <Link to="/app/diagnostico">Analisar Anúncio</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+          <CardHeader>
+            <div className="flex items-center space-x-2">
+              <GitCompare className="h-6 w-6 text-indigo-600" />
+              <CardTitle>Otimizador de Funil</CardTitle>
+            </div>
+            <CardDescription>
+              Analise a coerência entre seu anúncio e página de destino para maximizar conversões
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/app/otimizador-funil">Analisar Funil</Link>
             </Button>
           </CardContent>
         </Card>
