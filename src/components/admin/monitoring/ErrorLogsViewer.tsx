@@ -13,10 +13,11 @@ import {
   Eye, 
   Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Tables } from "@/integrations/supabase/types";
@@ -26,6 +27,7 @@ type ErrorLog = Tables<"error_logs">;
 export const ErrorLogsViewer = () => {
   const [selectedError, setSelectedError] = useState<ErrorLog | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [filters, setFilters] = useState({
     error_type: "",
     endpoint: "",
@@ -33,7 +35,6 @@ export const ErrorLogsViewer = () => {
     search: "",
   });
 
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch error logs
@@ -64,6 +65,33 @@ export const ErrorLogsViewer = () => {
     },
   });
 
+  // Delete error log mutation
+  const deleteErrorMutation = useMutation({
+    mutationFn: async (errorId: string) => {
+      const { error } = await supabase
+        .from("error_logs")
+        .delete()
+        .eq("id", errorId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["error-logs"] });
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Log excluído",
+        description: "O log de erro foi excluído com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: `Erro ao excluir log: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Mark error as resolved
   const resolveErrorMutation = useMutation({
     mutationFn: async (errorId: string) => {
@@ -77,7 +105,7 @@ export const ErrorLogsViewer = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["error-logs"] });
       toast({
-        title: "Sucesso",
+        title: "Erro resolvido",
         description: "Erro marcado como resolvido!",
       });
     },
@@ -246,7 +274,7 @@ export const ErrorLogsViewer = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      {format(new Date(error.last_occurrence), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      {format(new Date(error.last_occurrence), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -267,6 +295,17 @@ export const ErrorLogsViewer = () => {
                             <CheckCircle className="h-4 w-4" />
                           </Button>
                         )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedError(error);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -354,6 +393,43 @@ export const ErrorLogsViewer = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja excluir permanentemente este log de erro? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+            <p className="text-sm text-red-800">
+              <strong>Tipo:</strong> {selectedError?.error_type}
+            </p>
+            <p className="text-sm text-red-800 mt-1 truncate">
+              <strong>Mensagem:</strong> {selectedError?.error_message}
+            </p>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => selectedError && deleteErrorMutation.mutate(selectedError.id)}
+              disabled={deleteErrorMutation.isPending}
+            >
+              {deleteErrorMutation.isPending ? "Excluindo..." : "Excluir Permanentemente"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

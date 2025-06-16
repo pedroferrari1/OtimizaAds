@@ -3,7 +3,7 @@ import { DataTable } from "@/components/admin/DataTable";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,6 @@ const AdminUsers = () => {
     type: 'activate',
     user: null,
   });
-  const { toast } = useToast();
 
   const fetchUsers = async () => {
     try {
@@ -54,7 +53,7 @@ const AdminUsers = () => {
     } catch (error) {
       console.error('Erro ao buscar usuários:', error);
       toast({
-        title: "Erro",
+        title: "Erro ao carregar usuários",
         description: "Não foi possível carregar os usuários.",
         variant: "destructive",
       });
@@ -92,7 +91,7 @@ const AdminUsers = () => {
       // Log da ação
       await supabase.from('audit_logs').insert({
         admin_user_id: (await supabase.auth.getUser()).data.user?.id,
-        action: `user_${actionDialog.type}`,
+        action: actionDialog.type === 'makeAdmin' ? 'user_promoted_to_admin' : 'user_removed_from_admin',
         target_user_id: actionDialog.user.id,
         details: { 
           user_email: actionDialog.user.email,
@@ -102,7 +101,7 @@ const AdminUsers = () => {
       });
 
       toast({
-        title: "Sucesso",
+        title: "Operação realizada com sucesso",
         description: `Usuário ${actionDialog.type === 'makeAdmin' ? 'promovido a admin' : 'removido da função admin'} com sucesso.`,
       });
 
@@ -112,7 +111,7 @@ const AdminUsers = () => {
     } catch (error) {
       console.error('Erro ao atualizar usuário:', error);
       toast({
-        title: "Erro",
+        title: "Erro ao atualizar usuário",
         description: "Não foi possível atualizar o usuário.",
         variant: "destructive",
       });

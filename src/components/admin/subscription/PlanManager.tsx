@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { SubscriptionPlan } from "@/types/subscription";
 
 const PlanManager = () => {
@@ -17,7 +16,6 @@ const PlanManager = () => {
   const [loading, setLoading] = useState(true);
   const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   const fetchPlans = async () => {
     try {
@@ -53,7 +51,7 @@ const PlanManager = () => {
 
         if (error) throw error;
         toast({
-          title: "Sucesso",
+          title: "Plano atualizado",
           description: "Plano atualizado com sucesso.",
         });
       } else {
@@ -63,7 +61,7 @@ const PlanManager = () => {
 
         if (error) throw error;
         toast({
-          title: "Sucesso",
+          title: "Plano criado",
           description: "Plano criado com sucesso.",
         });
       }
@@ -94,8 +92,19 @@ const PlanManager = () => {
       if (error) throw error;
       
       fetchPlans();
+      
+      // Registrar no log de auditoria
+      await supabase.from('audit_logs').insert({
+        admin_user_id: (await supabase.auth.getUser()).data.user?.id,
+        action: isActive ? 'plan_activated' : 'plan_deactivated',
+        details: { 
+          plan_id: planId,
+          plan_name: plans.find(p => p.id === planId)?.name
+        }
+      });
+      
       toast({
-        title: "Sucesso",
+        title: "Status alterado",
         description: `Plano ${isActive ? 'ativado' : 'desativado'} com sucesso.`,
       });
     } catch (error) {
@@ -197,7 +206,7 @@ const PlanManager = () => {
                   <div className="mt-2 space-y-1">
                     {Object.entries(plan.features).map(([key, value]) => (
                       <div key={key} className="text-sm text-gray-600">
-                        <span className="capitalize">{key.replace('_', ' ')}</span>: {
+                        <span className="capitalize">{key.replace(/_/g, ' ')}</span>: {
                           typeof value === 'boolean' ? (value ? 'Sim' : 'Não') :
                           typeof value === 'number' ? (value === -1 ? 'Ilimitado' : String(value)) :
                           String(value)
