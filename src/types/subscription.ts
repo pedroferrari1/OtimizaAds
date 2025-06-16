@@ -11,6 +11,7 @@ export type SubscriptionPlan = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  description?: string;
 };
 
 export type UserSubscription = {
@@ -38,4 +39,13 @@ export type FeatureUsage = {
   current_usage: number;
   limit_value: number;
   can_use: boolean;
+};
+
+export type SubscriptionMetrics = {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  monthlyRevenue: number;
+  churnRate: number;
+  conversionRate: number;
+  ltv: number;
 };
