@@ -1,7 +1,7 @@
-import { useDiagnosis } from "@/features/ads";
-import AdTextForm from "@/features/ads/diagnosis/AdTextForm";
-import DiagnosisReportComponent from "@/features/ads/diagnosis/DiagnosisReport";
-import OptimizedAds from "@/features/ads/diagnosis/OptimizedAds";
+import { useDiagnosis } from "../hooks/useDiagnosis";
+import AdTextForm from "./components/AdTextForm";
+import DiagnosisReportComponent from "./components/DiagnosisReport";
+import OptimizedAds from "./components/OptimizedAds";
 
 const AdDiagnosis = () => {
   const {

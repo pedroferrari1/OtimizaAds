@@ -34,12 +34,12 @@ export const AlertManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Form states - Inicializar threshold_value com "0" em vez de string vazia
+  // Form states
   const [formData, setFormData] = useState({
     alert_name: "",
     metric_type: "",
     comparison_operator: "greater_than",
-    threshold_value: "0", // Mudança: inicializar com "0" em vez de ""
+    threshold_value: "0",
     notification_method: "email",
     notification_target: "",
   });
@@ -160,13 +160,24 @@ export const AlertManager = () => {
       alert_name: "",
       metric_type: "",
       comparison_operator: "greater_than",
-      threshold_value: "0", // Mudança: resetar para "0" em vez de ""
+      threshold_value: "0",
       notification_method: "email",
       notification_target: "",
     });
   };
 
   const handleCreateAlert = () => {
+    // Validar se threshold_value é um número válido
+    const thresholdValue = parseFloat(formData.threshold_value);
+    if (isNaN(thresholdValue)) {
+      toast({
+        title: "Erro",
+        description: "O valor limite deve ser um número válido.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     // Validação adicional antes de enviar
     if (!formData.alert_name.trim()) {
       toast({
@@ -190,16 +201,6 @@ export const AlertManager = () => {
       toast({
         title: "Erro",
         description: "Destino da notificação é obrigatório",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const thresholdValue = parseFloat(formData.threshold_value);
-    if (isNaN(thresholdValue)) {
-      toast({
-        title: "Erro",
-        description: "Valor limite deve ser um número válido",
         variant: "destructive",
       });
       return;
@@ -378,10 +379,14 @@ export const AlertManager = () => {
                       id="threshold_value"
                       type="number"
                       step="0.01"
-                      min="0"
                       value={formData.threshold_value}
-                      onChange={(e) => setFormData({ ...formData, threshold_value: e.target.value })}
+                      onChange={(e) => {
+                        const value = e.target.value || "0";
+                        setFormData({ ...formData, threshold_value: value });
+                      }}
                       placeholder="Ex: 5000"
+                      min="0"
+                      required
                     />
                   </div>
                   

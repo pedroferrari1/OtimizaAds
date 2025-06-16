@@ -6,11 +6,11 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar, RefreshCw, Settings, CheckCircle, AlertTriangle } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
 import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
-import SubscriptionDetails from "@/features/subscription/SubscriptionDetails";
-import SubscriptionHistory from "@/features/subscription/SubscriptionHistory";
+import SubscriptionDetails from "./components/SubscriptionDetails";
+import SubscriptionHistory from "./components/SubscriptionHistory";
 import PaymentMethodDisplay from "@/components/subscription/PaymentMethodDisplay";
 
 const Subscription = () => {
@@ -94,28 +94,6 @@ const Subscription = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-600';
-      case 'cancelled': return 'bg-yellow-600';
-      case 'past_due': return 'bg-red-600';
-      default: return 'bg-gray-600';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Ativo';
-      case 'cancelled': return 'Cancelado';
-      case 'past_due': return 'Em Atraso';
-      default: return status;
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -190,9 +168,6 @@ const Subscription = () => {
             usageData={usageData}
           />
 
-          {/* Usage Statistics */}
-          {/* Removido o componente UsageCard pois agora está integrado no SubscriptionDetails */}
-
           {/* All Plans */}
           <div>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
@@ -234,7 +209,5 @@ const Subscription = () => {
     </div>
   );
 };
-
-// Component for showing usage statistics
 
 export default Subscription;
