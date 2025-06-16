@@ -232,6 +232,13 @@ export const PromptEditor = () => {
     }
   };
 
+  const handleTestPrompt = () => {
+    testPromptMutation.mutate({
+      input: testInput,
+      expected: expectedOutput || undefined,
+    });
+  };
+
   const handleDeletePrompt = (prompt: PromptVersion) => {
     setPromptToDelete(prompt);
     setIsDeleteDialogOpen(true);
