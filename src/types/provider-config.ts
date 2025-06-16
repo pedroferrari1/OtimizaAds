@@ -14,37 +14,37 @@ export interface ProviderConfiguration {
   [key: string]: any;
 }
 
-export interface OpenAIConfig extends ProviderConfiguration {
+interface OpenAIConfig extends ProviderConfiguration {
   model?: string;
   organization_id?: string;
 }
 
-export interface AnthropicConfig extends ProviderConfiguration {
+interface AnthropicConfig extends ProviderConfiguration {
   model?: string;
   version?: string;
 }
 
-export interface NovitaConfig extends ProviderConfiguration {
+interface NovitaConfig extends ProviderConfiguration {
   model?: string;
   engine?: string;
 }
 
-export interface GeminiConfig extends ProviderConfiguration {
+interface GeminiConfig extends ProviderConfiguration {
   model?: string;
   project_id?: string;
 }
 
-export interface DeepSeekConfig extends ProviderConfiguration {
+interface DeepSeekConfig extends ProviderConfiguration {
   model?: string;
 }
 
-export interface OpenAICompatibleConfig extends ProviderConfiguration {
+interface OpenAICompatibleConfig extends ProviderConfiguration {
   model?: string;
   custom_endpoint: true;
 }
 
 // Type guard functions
-export const isProviderConfiguration = (config: any): config is ProviderConfiguration => {
+const isProviderConfiguration = (config: any): config is ProviderConfiguration => {
   return typeof config === 'object' && config !== null;
 };
 

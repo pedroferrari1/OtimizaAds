@@ -24,11 +24,11 @@ export const STRIPE_PRODUCTS = {
 };
 
 // URLs for checkout success and cancel
-export const CHECKOUT_SUCCESS_URL = `${window.location.origin}/app/assinatura?success=true`;
-export const CHECKOUT_CANCEL_URL = `${window.location.origin}/app/assinatura?canceled=true`;
+const CHECKOUT_SUCCESS_URL = `${window.location.origin}/app/assinatura?success=true`;
+const CHECKOUT_CANCEL_URL = `${window.location.origin}/app/assinatura?canceled=true`;
 
 // Stripe Elements configuration
-export const STRIPE_ELEMENTS_OPTIONS = {
+const STRIPE_ELEMENTS_OPTIONS = {
   locale: 'pt-BR',
   appearance: {
     theme: 'stripe',

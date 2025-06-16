@@ -6,7 +6,7 @@ export interface FunnelAnalysisResult {
   optimizedAd: string;
 }
 
-export interface FunnelAnalysisLog {
+interface FunnelAnalysisLog {
   id: string;
   user_id: string;
   ad_text: string;
@@ -18,7 +18,7 @@ export interface FunnelAnalysisLog {
   created_at: string;
 }
 
-export interface FunnelAnalyticsData {
+interface FunnelAnalyticsData {
   logs: FunnelAnalysisLog[];
   totalAnalyses: number;
   avgCoherenceScore: number;

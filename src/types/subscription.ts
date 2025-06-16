@@ -41,7 +41,7 @@ export type FeatureUsage = {
   can_use: boolean;
 };
 
-export type SubscriptionMetrics = {
+type SubscriptionMetrics = {
   totalSubscriptions: number;
   activeSubscriptions: number;
   monthlyRevenue: number;

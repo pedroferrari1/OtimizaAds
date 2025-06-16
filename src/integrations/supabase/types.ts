@@ -1,4 +1,4 @@
-export type Json =
+type Json =
   | string
   | number
   | boolean
@@ -777,7 +777,7 @@ export type Tables<
       : never
     : never
 
-export type TablesInsert<
+type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
@@ -800,7 +800,7 @@ export type TablesInsert<
       : never
     : never
 
-export type TablesUpdate<
+type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
@@ -823,7 +823,7 @@ export type TablesUpdate<
       : never
     : never
 
-export type Enums<
+type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
@@ -838,7 +838,7 @@ export type Enums<
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
-export type CompositeTypes<
+type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
@@ -853,7 +853,7 @@ export type CompositeTypes<
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
-export const Constants = {
+const Constants = {
   public: {
     Enums: {
       user_role: ["USER", "ADMIN"],
