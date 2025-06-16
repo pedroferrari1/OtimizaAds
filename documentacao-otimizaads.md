@@ -3,13 +3,13 @@
 ## Visão Geral do Projeto
 
 ### Propósito e Objetivos
-O OtimizaAds é uma plataforma de inteligência artificial projetada para ajudar empreendedores e profissionais de marketing a criar, otimizar e analisar anúncios publicitários. O sistema utiliza modelos avançados de IA para gerar textos persuasivos, diagnosticar problemas em anúncios existentes e fornecer recomendações de otimização baseadas em dados.
+O OtimizaAds é uma plataforma de inteligência artificial projetada para ajudar empreendedores e profissionais de marketing a criar, otimizar e analisar anúncios publicitários. O sistema utiliza modelos avançados de IA para gerar textos persuasivos, diagnosticar problemas em anúncios existentes, analisar a coerência de funil de vendas e fornecer recomendações de otimização baseadas em dados.
 
 ### Principais Funcionalidades
 - **Gerador de Anúncios IA**: Cria anúncios persuasivos a partir de informações básicas do produto
 - **Diagnóstico Inteligente**: Analisa anúncios existentes e identifica pontos de melhoria
-- **Otimização com 1 Clique**: Melhora automaticamente anúncios com base em dados de performance
-- **Análise de Concorrentes**: Fornece insights sobre estratégias de concorrentes
+- **Laboratório de Otimização de Funil**: Analisa a coerência entre anúncios e páginas de destino
+- **Histórico Completo**: Armazena todas as gerações e diagnósticos para referência futura
 - **Sistema de Assinaturas**: Diferentes planos com recursos escalonados
 - **Painel Administrativo**: Gerenciamento completo de usuários, assinaturas e configurações
 - **Monitoramento de IA**: Acompanhamento de uso, performance e custos dos modelos de IA
@@ -21,7 +21,7 @@ O OtimizaAds é uma plataforma de inteligência artificial projetada para ajudar
 - E-commerces e lojas online
 
 ### Stack Tecnológica
-- **Frontend**: React, TypeScript, Vite, TailwindCSS, Shadcn/UI
+- **Frontend**: React 18, TypeScript, Vite, TailwindCSS, Shadcn/UI
 - **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
 - **Integrações**: Stripe (pagamentos), OpenAI/Anthropic/Novita (modelos de IA)
 - **Monitoramento**: Sistema próprio de logs e métricas
@@ -39,8 +39,7 @@ O OtimizaAds é uma plataforma de inteligência artificial projetada para ajudar
 │   ├── components/             # Componentes React reutilizáveis
 │   │   ├── admin/              # Componentes do painel administrativo
 │   │   ├── diagnosis/          # Componentes de diagnóstico de anúncios
-│   │   ├── history/            # Componentes de histórico
-│   │   ├── landing/            # Componentes da página inicial
+│   │   ├── funnel-optimizer/   # Componentes de otimização de funil
 │   │   ├── layout/             # Componentes de layout
 │   │   ├── subscription/       # Componentes de assinatura
 │   │   └── ui/                 # Componentes de UI básicos (shadcn)
@@ -58,7 +57,7 @@ O OtimizaAds é uma plataforma de inteligência artificial projetada para ajudar
 │   │   └── supabase/           # Cliente e tipos do Supabase
 │   ├── lib/                    # Bibliotecas e utilitários
 │   ├── pages/                  # Páginas da aplicação
-│   ├── shared/                 # Recursos compartilhados
+│   ├── services/               # Serviços para lógica de negócio
 │   └── types/                  # Definições de tipos TypeScript
 ├── supabase/                   # Configurações do Supabase
 │   ├── functions/              # Edge Functions do Supabase
@@ -79,6 +78,9 @@ Hooks React personalizados que encapsulam lógica reutilizável, como gerenciame
 #### `/src/integrations`
 Código para integração com serviços externos, como Supabase e Stripe, incluindo clientes, tipos e utilitários.
 
+#### `/src/services`
+Serviços que encapsulam a lógica de negócio e interações com APIs, seguindo o padrão de serviço.
+
 #### `/supabase/functions`
 Edge Functions do Supabase para processamento serverless, incluindo integração com Stripe e processamento de IA.
 
@@ -91,7 +93,7 @@ Migrações SQL para o banco de dados PostgreSQL do Supabase, definindo o esquem
 - **Arquivos de Hooks**: camelCase com prefixo "use" (ex: `useSubscription.ts`)
 - **Arquivos de Utilitários**: camelCase (ex: `utils.ts`)
 - **Arquivos de Tipos**: camelCase (ex: `subscription.ts`)
-- **Edge Functions**: kebab-case (ex: `create-checkout.ts`)
+- **Edge Functions**: kebab-case (ex: `funnel-optimizer.ts`)
 
 ## Especificações Técnicas
 
@@ -101,7 +103,7 @@ Migrações SQL para o banco de dados PostgreSQL do Supabase, definindo o esquem
 O sistema utiliza o Supabase Auth para gerenciamento de usuários e autenticação:
 
 ```typescript
-// src/features/auth/AuthContext.tsx
+// src/features/auth/context/AuthContext.tsx
 const signIn = async (email: string, password: string) => {
   try {
     const { error } = await supabase.auth.signInWithPassword({
@@ -138,7 +140,12 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   const { user, loading, isAdmin } = useAuth();
   
   if (loading) {
-    return <LoadingScreen />;
+    return <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Carregando...</p>
+      </div>
+    </div>;
   }
 
   if (!user) {
@@ -161,8 +168,8 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://dhijrvssbudlnhgtcpyo.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 ```
@@ -174,51 +181,210 @@ O sistema utiliza Row Level Security (RLS) do PostgreSQL para controlar o acesso
 - Administradores podem acessar todos os dados
 - Políticas específicas para cada tabela
 
+Exemplo de política RLS para histórico:
+```sql
+-- Política para visualização de histórico
+CREATE POLICY "Users can view own history" 
+ON history_items 
+FOR SELECT 
+TO authenticated 
+USING (auth.uid() = user_id);
+```
+
 ### Sistema de Assinaturas
 
 #### Integração com Stripe
 O sistema utiliza o Stripe para processamento de pagamentos e gerenciamento de assinaturas:
 
 ```typescript
+// src/services/subscriptionService.ts
+async createCheckoutSession(planId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke('create-checkout', {
+      body: { plan_id: planId }
+    });
+
+    if (error) throw error;
+    return data?.url || null;
+  } catch (error) {
+    console.error('Erro ao criar sessão de checkout:', error);
+    toast({
+      title: "Erro",
+      description: "Não foi possível iniciar o checkout.",
+      variant: "destructive",
+    });
+    return null;
+  }
+}
+```
+
+#### Edge Function para Checkout
+```typescript
 // supabase/functions/create-checkout/index.ts
-const session = await stripe.checkout.sessions.create({
-  payment_method_types: ['card'],
-  customer: customerId,
-  line_items: [
-    {
-      price: plan.stripe_price_id,
-      quantity: 1,
-    },
-  ],
-  mode: 'subscription',
-  success_url: `${req.headers.get('origin')}/app/assinatura?success=true&session_id={CHECKOUT_SESSION_ID}`,
-  cancel_url: `${req.headers.get('origin')}/app/assinatura?canceled=true`,
-  metadata: {
-    user_id: user.id,
-    plan_id: plan_id,
-  },
+Deno.serve(async (req) => {
+  try {
+    const { plan_id } = await req.json();
+    const authHeader = req.headers.get('Authorization');
+    
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar usuário autenticado
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Usuário não autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Buscar plano
+    const { data: plan, error: planError } = await supabase
+      .from('subscription_plans')
+      .select('*')
+      .eq('id', plan_id)
+      .single();
+    
+    if (planError || !plan) {
+      return new Response(
+        JSON.stringify({ error: 'Plano não encontrado' }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Criar ou obter cliente no Stripe
+    let customerId;
+    const { data: customer } = await supabase
+      .from('stripe_customers')
+      .select('customer_id')
+      .eq('user_id', user.id)
+      .single();
+    
+    if (customer) {
+      customerId = customer.customer_id;
+    } else {
+      // Criar novo cliente no Stripe
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          user_id: user.id
+        }
+      });
+      
+      customerId = newCustomer.id;
+      
+      // Salvar no banco de dados
+      await supabase
+        .from('stripe_customers')
+        .insert({
+          user_id: user.id,
+          customer_id: customerId
+        });
+    }
+    
+    // Criar sessão de checkout
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      customer: customerId,
+      line_items: [
+        {
+          price: plan.stripe_price_id,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${req.headers.get('origin')}/app/assinatura?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.headers.get('origin')}/app/assinatura?canceled=true`,
+      metadata: {
+        user_id: user.id,
+        plan_id: plan_id,
+      },
+    });
+    
+    return new Response(
+      JSON.stringify({ url: session.url }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
 });
 ```
 
 #### Webhook para Eventos do Stripe
 ```typescript
 // supabase/functions/stripe-webhook/index.ts
-async function handleStripeEvent(event: Stripe.Event) {
-  const { type, data } = event;
-
-  switch (type) {
-    case 'checkout.session.completed':
-      await handleCheckoutSessionCompleted(data.object as Stripe.Checkout.Session);
-      break;
+Deno.serve(async (req) => {
+  try {
+    const signature = req.headers.get('stripe-signature');
+    const body = await req.text();
     
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated':
-      await handleSubscriptionUpdated(data.object as Stripe.Subscription);
-      break;
+    if (!signature) {
+      return new Response(
+        JSON.stringify({ error: 'Assinatura não fornecida' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     
-    // Outros eventos...
+    // Verificar assinatura do webhook
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        Deno.env.get('STRIPE_WEBHOOK_SECRET')
+      );
+    } catch (err) {
+      return new Response(
+        JSON.stringify({ error: `Erro de assinatura do webhook: ${err.message}` }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Processar evento
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+      
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object);
+        break;
+      
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object);
+        break;
+      
+      case 'invoice.paid':
+        await handleInvoicePaid(event.data.object);
+        break;
+      
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object);
+        break;
+    }
+    
+    return new Response(
+      JSON.stringify({ received: true }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-}
+});
 ```
 
 ### Gerenciamento de Planos
@@ -303,36 +469,72 @@ const handleGenerate = async (e: React.FormEvent) => {
   setIsGenerating(true);
 
   try {
-    // TODO: Integrate with Novita.ai API via Supabase Edge Function
-    console.log("Generating ads for:", { productName, productDescription, targetAudience });
+    // Validar entrada
+    if (!productName.trim() || !productDescription.trim() || !targetAudience.trim()) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos para gerar anúncios.",
+        variant: "destructive",
+      });
+      return;
+    }
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Verificar se o usuário pode usar o serviço (verificar limite do plano)
+    if (user) {
+      const { data, error } = await supabase.rpc('check_feature_usage', {
+        user_uuid: user.id,
+        feature: 'generations'
+      });
+      
+      if (error) throw error;
+      
+      if (data && data[0] && !data[0].can_use) {
+        throw new Error('Você atingiu o limite de gerações do seu plano.');
+      }
+    }
     
-    // Mock generated ads
-    const mockAds = [
-      `🔥 ${productName} está aqui! ${productDescription.substring(0, 50)}... Perfeito para ${targetAudience}. Não perca esta oportunidade! 👇`,
-      // Outros anúncios gerados...
-    ];
+    // Chamar a Edge Function do Supabase
+    const { data, error } = await supabase.functions.invoke('ad-generator', {
+      body: { 
+        productName, 
+        productDescription, 
+        targetAudience 
+      }
+    });
     
-    setGeneratedAds(mockAds);
+    if (error) throw error;
     
-    // Save to history
+    if (!data || !Array.isArray(data.ads)) {
+      throw new Error('Resposta inválida da API');
+    }
+    
+    // Incrementar contador de uso da funcionalidade
+    if (user) {
+      await supabase.rpc('increment_usage_counter', {
+        p_user_uuid: user.id,
+        p_feature_type: 'generations'
+      });
+    }
+    
+    setGeneratedAds(data.ads);
+    
+    // Salvar no histórico
     const inputData = {
       productName,
       productDescription,
       targetAudience
     };
-    await saveToHistory(inputData, mockAds);
+    await saveToHistory(inputData, data.ads);
     
     toast({
       title: "Anúncios gerados com sucesso!",
-      description: "5 variações foram criadas para seu produto.",
+      description: `${data.ads.length} variações foram criadas para seu produto.`,
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Tente novamente em alguns instantes.";
     toast({
       title: "Erro ao gerar anúncios",
-      description: "Tente novamente em alguns instantes.",
+      description: errorMessage,
       variant: "destructive",
     });
   } finally {
@@ -347,10 +549,99 @@ const handleGenerate = async (e: React.FormEvent) => {
 ```typescript
 // src/features/ads/hooks/useDiagnosis.ts
 const handleAnalyze = async () => {
-  if (!adText.trim()) {
+  // Validar e formatar o texto do anúncio
+  const validation = validateAndFormatText(adText);
+  if (!validation.isValid) {
     toast({
-      title: "Texto obrigatório",
-      description: "Por favor, insira o texto do anúncio para análise.",
+      title: "Erro de validação",
+      description: validation.error,
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Usar o texto formatado
+  const formattedAdText = validation.formattedText!;
+  
+  setIsAnalyzing(true);
+
+  try {
+    // Verificar se o usuário pode usar o serviço (verificar limite do plano)
+    if (user) {
+      const { data, error } = await supabase.rpc('check_feature_usage', {
+        user_uuid: user.id,
+        feature: 'diagnostics'
+      });
+      
+      if (error) throw error;
+      
+      if (data && data[0] && !data[0].can_use) {
+        throw new Error('Você atingiu o limite de diagnósticos do seu plano.');
+      }
+    }
+    
+    // Chamar a Edge Function do Supabase
+    const { data, error } = await supabase.functions.invoke('ad-diagnosis', {
+      body: { adText: formattedAdText }
+    });
+    
+    if (error) throw error;
+    
+    if (!data || !data.clarityScore) {
+      throw new Error('Resposta inválida da API');
+    }
+    
+    // Incrementar contador de uso da funcionalidade
+    if (user) {
+      await supabase.rpc('increment_usage_counter', {
+        p_user_uuid: user.id,
+        p_feature_type: 'diagnostics'
+      });
+    }
+    
+    setDiagnosisReport(data);
+    
+    // Salvar diagnóstico no histórico
+    await saveToHistory(formattedAdText, data);
+    
+    toast({
+      title: "Análise concluída!",
+      description: "Seu anúncio foi analisado com sucesso.",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Tente novamente em alguns instantes.";
+    toast({
+      title: "Erro na análise",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
+```
+
+### Otimização de Funil
+
+#### Hook de Otimização de Funil
+```typescript
+// src/hooks/useFunnelOptimizer.ts
+const handleAnalyze = async () => {
+  // Validar textos de entrada
+  const validation = validateTexts();
+  if (!validation.valid) {
+    toast({
+      title: "Validação",
+      description: validation.message,
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (!canUseFeature) {
+    toast({
+      title: "Limite atingido",
+      description: "Você atingiu o limite de análises do seu plano. Faça upgrade para continuar.",
       variant: "destructive",
     });
     return;
@@ -359,34 +650,51 @@ const handleAnalyze = async () => {
   setIsAnalyzing(true);
 
   try {
-    console.log("Analyzing ad:", adText);
+    // Chamar a Edge Function do Supabase
+    const { data, error } = await supabase.functions.invoke('funnel-optimizer', {
+      body: { 
+        adText: adText.trim(), 
+        landingPageText: landingPageText.trim() 
+      }
+    });
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    if (error) throw error;
     
-    // Mock diagnosis report
-    const mockReport: DiagnosisReport = {
-      clarityScore: 7.5,
-      hookAnalysis: "O gancho inicial está adequado, mas poderia ser mais impactante...",
-      ctaAnalysis: "A chamada para ação está presente, mas não transmite urgência...",
-      mentalTriggers: ["Urgência", "Autoridade", "Prova Social"],
-      suggestions: [
-        "Adicione uma pergunta provocativa no início",
-        // Outras sugestões...
-      ]
-    };
+    if (!data || !data.funnelCoherenceScore) {
+      throw new Error('Resposta inválida da API');
+    }
     
-    setDiagnosisReport(mockReport);
+    // Atualizar dados de uso após análise bem-sucedida
+    await checkFeatureUsage();
+    
+    // Definir resultados
+    setAnalysisResults(data);
+    
+    // Salvar no histórico
+    await saveToHistory(adText, landingPageText, data);
+
     toast({
       title: "Análise concluída!",
-      description: "Seu anúncio foi analisado com sucesso.",
+      description: `Pontuação de coerência: ${data.funnelCoherenceScore}/10`,
     });
   } catch (error) {
-    toast({
-      title: "Erro na análise",
-      description: "Tente novamente em alguns instantes.",
-      variant: "destructive",
-    });
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Verificar se é um erro de limite de plano
+    if (errorMessage.includes('não inclui acesso')) {
+      setCanUseFeature(false);
+      toast({
+        title: "Recurso não disponível",
+        description: "Seu plano atual não inclui acesso ao Laboratório de Otimização de Funil. Faça upgrade para continuar.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Erro na análise",
+        description: errorMessage || "Não foi possível analisar os textos. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+    }
   } finally {
     setIsAnalyzing(false);
   }
@@ -451,16 +759,30 @@ const { data: usageMetrics } = useQuery({
 });
 
 // Calcular métricas
-const totalTokens = usageMetrics?.reduce((sum, metric) => 
-  sum + (metric.tokens_input || 0) + (metric.tokens_output || 0), 0) || 0;
-
-const totalCost = usageMetrics?.reduce((sum, metric) => 
-  sum + (metric.estimated_cost || 0), 0) || 0;
+const metrics = usageMetrics ? {
+  totalRequests: usageMetrics.length,
+  totalTokensInput: usageMetrics.reduce((sum, m) => sum + (m.tokens_input || 0), 0),
+  totalTokensOutput: usageMetrics.reduce((sum, m) => sum + (m.tokens_output || 0), 0),
+  totalCost: usageMetrics.reduce((sum, m) => sum + (m.estimated_cost || 0), 0),
+  avgResponseTime: usageMetrics.length > 0 
+    ? usageMetrics.reduce((sum, m) => sum + (m.response_time_ms || 0), 0) / usageMetrics.length 
+    : 0,
+  successRate: usageMetrics.length > 0 
+    ? (usageMetrics.filter(m => m.success).length / usageMetrics.length) * 100 
+    : 0,
+} : {
+  totalRequests: 0,
+  totalTokensInput: 0,
+  totalTokensOutput: 0,
+  totalCost: 0,
+  avgResponseTime: 0,
+  successRate: 0,
+};
 ```
 
 #### Gerenciamento de Usuários
 ```typescript
-// src/features/admin/users/AdminUsers.tsx
+// src/features/admin/AdminUsers.tsx
 const handleUserAction = async () => {
   if (!actionDialog.user) return;
 
@@ -518,161 +840,493 @@ const handleUserAction = async () => {
 };
 ```
 
-## Instruções de Configuração
+## Esquema do Banco de Dados
 
-### Requisitos de Ambiente
-- Node.js 18+ 
-- npm 9+ ou yarn 1.22+
-- Conta no Supabase
-- Conta no Stripe (para processamento de pagamentos)
+### Tabelas Principais
 
-### Instalação
+#### `profiles`
+Armazena informações dos usuários, vinculada à tabela auth.users do Supabase.
 
-1. **Clone o repositório**
-   ```bash
-   git clone https://github.com/seu-usuario/otimizaads.git
-   cd otimizaads
-   ```
+```sql
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+  role USER_ROLE NOT NULL DEFAULT 'USER'::USER_ROLE
+);
 
-2. **Instale as dependências**
-   ```bash
-   npm install
-   # ou
-   yarn install
-   ```
+-- Enum para roles de usuário
+CREATE TYPE USER_ROLE AS ENUM ('USER', 'ADMIN');
+```
 
-3. **Configure as variáveis de ambiente**
-   Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
-   ```
-   VITE_SUPABASE_URL=sua_url_do_supabase
-   VITE_SUPABASE_ANON_KEY=sua_chave_anon_do_supabase
-   VITE_STRIPE_PUBLISHABLE_KEY=sua_chave_publicavel_do_stripe
-   ```
+#### `subscription_plans`
+Armazena os planos de assinatura disponíveis.
 
-4. **Configure as variáveis de ambiente do Supabase**
-   No painel do Supabase, configure as seguintes variáveis para as Edge Functions:
-   ```
-   STRIPE_SECRET_KEY=sua_chave_secreta_do_stripe
-   STRIPE_WEBHOOK_SECRET=seu_segredo_de_webhook_do_stripe
-   ```
+```sql
+CREATE TABLE subscription_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT UNIQUE NOT NULL,
+  price_monthly INTEGER NOT NULL,
+  currency TEXT NOT NULL DEFAULT 'BRL',
+  stripe_price_id TEXT,
+  features JSONB NOT NULL DEFAULT '{}',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
 
-5. **Execute as migrações do banco de dados**
-   ```bash
-   npx supabase migration up
-   ```
+#### `user_subscriptions`
+Relaciona usuários a planos de assinatura.
 
-6. **Inicie o servidor de desenvolvimento**
-   ```bash
-   npm run dev
-   # ou
-   yarn dev
-   ```
+```sql
+CREATE TABLE user_subscriptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  plan_id UUID NOT NULL REFERENCES subscription_plans(id),
+  stripe_subscription_id TEXT,
+  status TEXT NOT NULL DEFAULT 'active',
+  current_period_start TIMESTAMPTZ,
+  current_period_end TIMESTAMPTZ,
+  cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id)
+);
+```
 
-### Deployment
+#### `history_items`
+Armazena o histórico de anúncios gerados e diagnósticos.
 
-1. **Build do projeto**
-   ```bash
-   npm run build
-   # ou
-   yarn build
-   ```
+```sql
+CREATE TABLE history_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('generation', 'diagnosis', 'funnel_analysis')),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  input_data JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc', now())
+);
+```
 
-2. **Deploy no Netlify**
-   ```bash
-   netlify deploy --prod
-   ```
+#### `ai_models`
+Configurações dos modelos de IA disponíveis.
 
-3. **Deploy das Edge Functions do Supabase**
-   ```bash
-   supabase functions deploy create-checkout
-   supabase functions deploy customer-portal
-   supabase functions deploy stripe-webhook
-   supabase functions deploy track-usage
-   ```
+```sql
+CREATE TABLE ai_models (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  model_name TEXT UNIQUE NOT NULL,
+  provider UUID REFERENCES provider_configurations(id),
+  model_type TEXT NOT NULL,
+  cost_per_token_input NUMERIC(10,8) DEFAULT 0,
+  cost_per_token_output NUMERIC(10,8) DEFAULT 0,
+  max_tokens INTEGER,
+  temperature NUMERIC DEFAULT 0.7,
+  top_p NUMERIC DEFAULT 0.9,
+  frequency_penalty NUMERIC DEFAULT 0,
+  presence_penalty NUMERIC DEFAULT 0,
+  supports_streaming BOOLEAN DEFAULT false,
+  supports_vision BOOLEAN DEFAULT false,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  provider_model_id TEXT
+);
+```
 
-## Arquitetura
+#### `ai_usage_metrics`
+Métricas de uso dos modelos de IA.
 
-### Visão Geral do Sistema
-O OtimizaAds segue uma arquitetura baseada em serviços, com o frontend React se comunicando com o backend Supabase através de sua API REST e Edge Functions para operações mais complexas.
+```sql
+CREATE TABLE ai_usage_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES profiles(id),
+  model_name TEXT NOT NULL,
+  service_type TEXT NOT NULL,
+  tokens_input INTEGER DEFAULT 0,
+  tokens_output INTEGER DEFAULT 0,
+  estimated_cost NUMERIC(10,6) DEFAULT 0,
+  response_time_ms INTEGER,
+  timestamp TIMESTAMPTZ NOT NULL DEFAULT now(),
+  success BOOLEAN DEFAULT true
+);
+```
 
-### Esquema do Banco de Dados
+#### `usage_tracking`
+Rastreamento de uso de recursos por usuário.
 
-#### Tabelas Principais
+```sql
+CREATE TABLE usage_tracking (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  feature_type TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  period_start TIMESTAMPTZ NOT NULL,
+  period_end TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(user_id, feature_type, period_start)
+);
+```
 
-1. **profiles**
-   - Armazena informações dos usuários
-   - Vinculada à tabela auth.users do Supabase
-
-2. **subscription_plans**
-   - Armazena os planos de assinatura disponíveis
-   - Inclui preços, recursos e configurações
-
-3. **user_subscriptions**
-   - Relaciona usuários a planos de assinatura
-   - Armazena status, datas de início/fim e informações de pagamento
-
-4. **history_items**
-   - Armazena o histórico de anúncios gerados e diagnósticos
-   - Vinculada aos usuários
-
-5. **ai_models**
-   - Configurações dos modelos de IA disponíveis
-   - Inclui custos, limites e parâmetros
-
-6. **ai_usage_metrics**
-   - Métricas de uso dos modelos de IA
-   - Utilizada para monitoramento e faturamento
-
-#### Relacionamentos
+### Relacionamentos
 
 ```
 profiles (1) --- (N) history_items
 profiles (1) --- (1) user_subscriptions
 user_subscriptions (N) --- (1) subscription_plans
 ai_models (1) --- (N) ai_usage_metrics
+profiles (1) --- (N) usage_tracking
 ```
+
+## Edge Functions
 
 ### Endpoints da API
 
-#### Edge Functions
+#### `ad-generator`
+- **Método**: POST
+- **Descrição**: Gera anúncios com base nas informações do produto
+- **Parâmetros**:
+  - `productName`: Nome do produto
+  - `productDescription`: Descrição do produto
+  - `targetAudience`: Público-alvo
+- **Retorno**: Array de anúncios gerados
 
-1. **create-checkout**
-   - Cria uma sessão de checkout no Stripe
-   - Parâmetros: `plan_id`
-   - Retorno: URL de checkout
+```typescript
+// supabase/functions/ad-generator/index.ts
+Deno.serve(async (req) => {
+  try {
+    const { productName, productDescription, targetAudience } = await req.json();
+    
+    // Validar entrada
+    if (!productName || !productDescription || !targetAudience) {
+      return new Response(
+        JSON.stringify({ error: 'Parâmetros incompletos' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Obter configuração do modelo
+    const modelConfig = await getModelConfig('generation');
+    
+    // Construir prompt
+    const prompt = `
+      Gere 5 anúncios persuasivos para o seguinte produto:
+      
+      Nome do produto: ${productName}
+      Descrição: ${productDescription}
+      Público-alvo: ${targetAudience}
+      
+      Os anúncios devem ser curtos, persuasivos e incluir emojis estratégicos.
+      Cada anúncio deve ter um gancho forte, benefícios claros e uma chamada para ação.
+    `;
+    
+    // Chamar API de IA
+    const response = await callAIProvider(modelConfig, prompt);
+    
+    // Processar resposta
+    const ads = processAIResponse(response);
+    
+    // Registrar uso
+    await trackAIUsage(modelConfig, prompt, response);
+    
+    return new Response(
+      JSON.stringify({ ads }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+});
+```
 
-2. **customer-portal**
-   - Cria uma sessão do portal de clientes do Stripe
-   - Retorno: URL do portal
+#### `ad-diagnosis`
+- **Método**: POST
+- **Descrição**: Analisa um anúncio existente
+- **Parâmetros**:
+  - `adText`: Texto do anúncio a ser analisado
+- **Retorno**: Relatório de diagnóstico
 
-3. **stripe-webhook**
-   - Processa eventos do webhook do Stripe
-   - Atualiza assinaturas e registra pagamentos
+```typescript
+// supabase/functions/ad-diagnosis/index.ts
+Deno.serve(async (req) => {
+  try {
+    const { adText } = await req.json();
+    
+    // Validar entrada
+    if (!adText) {
+      return new Response(
+        JSON.stringify({ error: 'Texto do anúncio não fornecido' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Obter configuração do modelo
+    const modelConfig = await getModelConfig('diagnosis');
+    
+    // Construir prompt
+    const prompt = `
+      Analise o seguinte anúncio e forneça um diagnóstico detalhado:
+      
+      "${adText}"
+      
+      Forneça:
+      1. Uma pontuação de clareza de 0-10
+      2. Análise do gancho inicial
+      3. Análise da chamada para ação
+      4. Gatilhos mentais presentes ou que deveriam ser usados
+      5. Sugestões específicas de melhoria
+    `;
+    
+    // Chamar API de IA
+    const response = await callAIProvider(modelConfig, prompt);
+    
+    // Processar resposta
+    const diagnosis = processAIDiagnosis(response);
+    
+    // Registrar uso
+    await trackAIUsage(modelConfig, prompt, response);
+    
+    return new Response(
+      JSON.stringify(diagnosis),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+});
+```
 
-4. **track-usage**
-   - Registra o uso de recursos pelos usuários
-   - Parâmetros: `feature_type`, `user_id`
+#### `funnel-optimizer`
+- **Método**: POST
+- **Descrição**: Analisa a coerência entre anúncio e página de destino
+- **Parâmetros**:
+  - `adText`: Texto do anúncio
+  - `landingPageText`: Texto da página de destino
+- **Retorno**: Análise de coerência e sugestões
 
-### Fluxo de Dados
+```typescript
+// supabase/functions/funnel-optimizer/index.ts
+Deno.serve(async (req) => {
+  try {
+    const { adText, landingPageText } = await req.json();
+    
+    // Validar entrada
+    if (!adText || !landingPageText) {
+      return new Response(
+        JSON.stringify({ error: 'Parâmetros incompletos' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar autenticação
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar se o usuário tem acesso ao recurso
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Usuário não autenticado' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Verificar se o usuário pode usar o recurso
+    const { data: usageData, error: usageError } = await supabase.rpc('check_funnel_analysis_usage', {
+      user_uuid: user.id
+    });
+    
+    if (usageError) {
+      return new Response(
+        JSON.stringify({ error: usageError.message }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!usageData[0].can_use) {
+      return new Response(
+        JSON.stringify({ error: 'Limite de uso atingido ou plano não inclui acesso a esta funcionalidade' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Obter configuração do modelo
+    const modelConfig = await getModelConfig('funnel_analysis');
+    
+    // Verificar cache
+    const cacheKey = `funnel_analysis:${hashString(adText + landingPageText)}`;
+    const { data: cacheData } = await supabase
+      .from('system_cache')
+      .select('value')
+      .eq('key', cacheKey)
+      .maybeSingle();
+    
+    if (cacheData) {
+      // Incrementar contador de uso
+      await incrementUsageCounter(user.id, 'funnel_analysis');
+      
+      // Registrar hit de cache
+      await incrementMetric('cache_hits');
+      
+      return new Response(
+        JSON.stringify(cacheData.value),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Registrar miss de cache
+    await incrementMetric('cache_misses');
+    
+    // Construir prompt
+    const prompt = `
+      Analise a coerência entre o seguinte anúncio e sua página de destino:
+      
+      ANÚNCIO:
+      "${adText}"
+      
+      PÁGINA DE DESTINO:
+      "${landingPageText}"
+      
+      Forneça:
+      1. Uma pontuação de coerência de 0-10
+      2. Diagnóstico do anúncio
+      3. Diagnóstico da página de destino
+      4. Sugestões para melhorar a coerência
+      5. Uma versão otimizada do anúncio que melhore a coerência
+    `;
+    
+    // Chamar API de IA
+    const startTime = Date.now();
+    const response = await callAIProvider(modelConfig, prompt);
+    const processingTime = Date.now() - startTime;
+    
+    // Processar resposta
+    const analysis = processFunnelAnalysis(response);
+    
+    // Salvar no cache
+    await supabase
+      .from('system_cache')
+      .insert({
+        key: cacheKey,
+        value: analysis,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      });
+    
+    // Registrar uso
+    await incrementUsageCounter(user.id, 'funnel_analysis');
+    
+    // Registrar métricas
+    await supabase
+      .from('funnel_analysis_logs')
+      .insert({
+        user_id: user.id,
+        ad_text: adText,
+        landing_page_text: landingPageText,
+        coherence_score: analysis.funnelCoherenceScore,
+        suggestions: analysis.syncSuggestions,
+        optimized_ad: analysis.optimizedAd,
+        processing_time_ms: processingTime
+      });
+    
+    // Registrar uso de IA
+    await trackAIUsage(modelConfig, prompt, response, user.id, processingTime);
+    
+    return new Response(
+      JSON.stringify(analysis),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+});
+```
 
-1. **Geração de Anúncios**
-   - Usuário insere informações do produto
-   - Frontend envia dados para o backend
-   - Backend processa com modelo de IA
-   - Resultado é retornado e salvo no histórico
+#### `create-checkout`
+- **Método**: POST
+- **Descrição**: Cria uma sessão de checkout no Stripe
+- **Parâmetros**: `plan_id`
+- **Retorno**: URL de checkout
 
-2. **Diagnóstico de Anúncios**
-   - Usuário insere texto do anúncio
-   - Backend analisa com modelo de IA
-   - Relatório de diagnóstico é gerado
-   - Sugestões de otimização são apresentadas
+#### `customer-portal`
+- **Método**: GET
+- **Descrição**: Cria uma sessão do portal de clientes do Stripe
+- **Retorno**: URL do portal
 
-3. **Assinatura**
-   - Usuário seleciona plano
-   - Frontend inicia checkout via Edge Function
-   - Usuário completa pagamento no Stripe
-   - Webhook do Stripe notifica o backend
-   - Assinatura é ativada no banco de dados
+#### `stripe-webhook`
+- **Método**: POST
+- **Descrição**: Processa eventos do webhook do Stripe
+- **Retorno**: Confirmação de recebimento
+
+#### `track-usage`
+- **Método**: POST
+- **Descrição**: Registra o uso de recursos pelos usuários
+- **Parâmetros**: `feature_type`, `user_id`
+- **Retorno**: Confirmação de registro
+
+## Fluxo de Dados
+
+### Geração de Anúncios
+1. Usuário insere informações do produto
+2. Frontend envia dados para o backend
+3. Backend processa com modelo de IA
+4. Resultado é retornado e salvo no histórico
+
+### Diagnóstico de Anúncios
+1. Usuário insere texto do anúncio
+2. Backend analisa com modelo de IA
+3. Relatório de diagnóstico é gerado
+4. Sugestões de otimização são apresentadas
+
+### Otimização de Funil
+1. Usuário insere texto do anúncio e da página de destino
+2. Backend analisa a coerência entre os textos
+3. Pontuação de coerência e sugestões são geradas
+4. Versão otimizada do anúncio é apresentada
+
+### Assinatura
+1. Usuário seleciona plano
+2. Frontend inicia checkout via Edge Function
+3. Usuário completa pagamento no Stripe
+4. Webhook do Stripe notifica o backend
+5. Assinatura é ativada no banco de dados
 
 ## Configurações
 
@@ -686,6 +1340,9 @@ ai_models (1) --- (N) ai_usage_metrics
 | SUPABASE_SERVICE_ROLE_KEY | Chave de serviço do Supabase (apenas para Edge Functions) | Sim |
 | STRIPE_SECRET_KEY | Chave secreta do Stripe (apenas para Edge Functions) | Sim |
 | STRIPE_WEBHOOK_SECRET | Segredo do webhook do Stripe (apenas para Edge Functions) | Sim |
+| OPENAI_API_KEY | Chave da API da OpenAI (apenas para Edge Functions) | Sim |
+| ANTHROPIC_API_KEY | Chave da API da Anthropic (apenas para Edge Functions) | Não |
+| NOVITA_API_KEY | Chave da API da Novita (apenas para Edge Functions) | Não |
 
 ### Configurações do Stripe
 
@@ -853,6 +1510,122 @@ Logs de auditoria para ações administrativas:
 - Dados sensíveis nunca expostos no frontend
 - Logs de auditoria para todas as ações críticas
 
+## Limitações Conhecidas e Recursos Pendentes
+
+### Limitações Atuais
+1. **Suporte a Idiomas**: Atualmente apenas português do Brasil é suportado
+2. **Integração com Plataformas**: Não há integração direta com Facebook Ads, Google Ads, etc.
+3. **Análise de Imagens**: O sistema não analisa imagens de anúncios, apenas texto
+4. **Modelos de IA**: Alguns modelos avançados podem não estar disponíveis em todos os planos
+
+### Recursos Planejados
+1. **Editor Visual de Anúncios**: Interface drag-and-drop para criação de anúncios
+2. **Integração com Plataformas**: Facebook Ads, Google Ads, etc.
+3. **Análise de Imagens**: Diagnóstico de imagens de anúncios
+4. **Multilingue**: Suporte a múltiplos idiomas
+5. **API Pública**: Para integração com outras ferramentas
+
+## Instruções de Instalação e Deployment
+
+### Requisitos de Ambiente
+- Node.js 18+ 
+- npm 9+ ou yarn 1.22+
+- Conta no Supabase
+- Conta no Stripe (para processamento de pagamentos)
+- Contas nos provedores de IA desejados (OpenAI, Anthropic, etc.)
+
+### Instalação Local
+
+1. **Clone o repositório**
+   ```bash
+   git clone https://github.com/seu-usuario/otimizaads.git
+   cd otimizaads
+   ```
+
+2. **Instale as dependências**
+   ```bash
+   npm install
+   # ou
+   yarn install
+   ```
+
+3. **Configure as variáveis de ambiente**
+   Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+   ```
+   VITE_SUPABASE_URL=sua_url_do_supabase
+   VITE_SUPABASE_ANON_KEY=sua_chave_anon_do_supabase
+   VITE_STRIPE_PUBLISHABLE_KEY=sua_chave_publicavel_do_stripe
+   ```
+
+4. **Configure as variáveis de ambiente do Supabase**
+   No painel do Supabase, configure as seguintes variáveis para as Edge Functions:
+   ```
+   STRIPE_SECRET_KEY=sua_chave_secreta_do_stripe
+   STRIPE_WEBHOOK_SECRET=seu_segredo_de_webhook_do_stripe
+   OPENAI_API_KEY=sua_chave_da_api_da_openai
+   ```
+
+5. **Execute as migrações do banco de dados**
+   ```bash
+   npx supabase migration up
+   ```
+
+6. **Inicie o servidor de desenvolvimento**
+   ```bash
+   npm run dev
+   # ou
+   yarn dev
+   ```
+
+### Deployment
+
+1. **Build do projeto**
+   ```bash
+   npm run build
+   # ou
+   yarn build
+   ```
+
+2. **Deploy no Netlify**
+   ```bash
+   netlify deploy --prod
+   ```
+
+3. **Deploy das Edge Functions do Supabase**
+   ```bash
+   supabase functions deploy ad-generator
+   supabase functions deploy ad-diagnosis
+   supabase functions deploy funnel-optimizer
+   supabase functions deploy create-checkout
+   supabase functions deploy customer-portal
+   supabase functions deploy stripe-webhook
+   supabase functions deploy track-usage
+   ```
+
+## Solução de Problemas
+
+### Problemas Comuns
+
+#### Erro ao conectar com o Supabase
+- Verifique se as variáveis de ambiente estão configuradas corretamente
+- Confirme se as URLs e chaves de API estão corretas
+- Verifique o console do navegador para mensagens de erro específicas
+
+#### Problemas com o Stripe
+- Certifique-se de que o webhook está configurado corretamente
+- Verifique se as chaves do Stripe estão configuradas nas variáveis de ambiente
+- Verifique os logs de webhook no dashboard do Stripe
+
+#### Erros de Edge Functions
+- Verifique os logs das Edge Functions no dashboard do Supabase
+- Confirme se as funções estão implantadas corretamente
+- Verifique se as variáveis de ambiente estão configuradas nas funções
+
+#### Limites de Plano
+- Se um usuário não consegue acessar uma funcionalidade, verifique se o plano dele inclui acesso
+- Verifique se o usuário atingiu o limite de uso para a funcionalidade
+- Consulte a tabela `usage_tracking` para ver o uso atual
+
 ## Considerações de Performance
 
 ### Otimizações de Frontend
@@ -866,22 +1639,42 @@ Logs de auditoria para ações administrativas:
 - Políticas RLS eficientes
 
 ### Caching
-- React Query para caching de dados
-- Invalidação seletiva de cache
-- Estratégias de revalidação
+- Cache de resultados de IA para reduzir custos e melhorar performance
+- Estratégia de invalidação de cache baseada em tempo
+- Métricas de hit/miss para monitoramento
 
-## Roadmap Futuro
+## Versão e Histórico de Alterações
 
-### Próximas Funcionalidades
-1. **Editor Visual de Anúncios**: Interface drag-and-drop para criação de anúncios
-2. **Integração com Plataformas**: Facebook Ads, Google Ads, etc.
-3. **Análise de Imagens**: Diagnóstico de imagens de anúncios
-4. **Multilingue**: Suporte a múltiplos idiomas
-5. **API Pública**: Para integração com outras ferramentas
+### Versão Atual: 1.0.0
 
-### Melhorias Planejadas
-1. **Performance**: Otimização de consultas e renderização
-2. **UX/UI**: Refinamentos na experiência do usuário
-3. **Modelos de IA**: Integração com novos modelos
-4. **Relatórios**: Análises mais detalhadas
-5. **Mobile**: Aplicativo nativo para iOS e Android
+#### Funcionalidades Implementadas
+- ✅ Sistema de autenticação e autorização
+- ✅ Gerador de anúncios com IA
+- ✅ Diagnóstico de anúncios
+- ✅ Laboratório de otimização de funil
+- ✅ Histórico de anúncios e diagnósticos
+- ✅ Sistema de assinaturas com Stripe
+- ✅ Painel administrativo completo
+- ✅ Monitoramento de uso de IA
+- ✅ Gerenciamento de modelos e provedores de IA
+- ✅ Configuração de prompts com versionamento
+
+#### Alterações Recentes
+- Adicionado Laboratório de Otimização de Funil
+- Implementado sistema de cache para resultados de IA
+- Melhorada a validação de entrada nos formulários
+- Adicionado suporte a múltiplos provedores de IA
+- Implementado sistema de auditoria para ações administrativas
+- Corrigidos problemas de performance em listas grandes
+- Melhorada a experiência do usuário no painel administrativo
+- Adicionadas métricas detalhadas de uso de IA
+
+## Contato e Suporte
+
+- **Email**: contato@otimizaads.com
+- **Website**: [www.otimizaads.com](https://www.otimizaads.com)
+- **Suporte**: suporte@otimizaads.com
+
+---
+
+Desenvolvido com ❤️ pela equipe OtimizaAds.
