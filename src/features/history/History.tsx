@@ -1,13 +1,12 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth";
 import type { Tables } from "@/integrations/supabase/types";
-import HistoryCard from "@/components/history/HistoryCard";
-import HistoryFilters from "@/components/history/HistoryFilters";
-import HistoryModal from "@/components/history/HistoryModal";
+import HistoryCard from "./components/HistoryCard";
+import HistoryFilters from "./components/HistoryFilters";
+import HistoryModal from "./components/HistoryModal";
 import { Search } from "lucide-react";
 
 type HistoryItem = Tables<'history_items'>;
@@ -22,7 +21,6 @@ const History = () => {
   const [selectedItem, setSelectedItem] = useState<HistoryItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (user) {

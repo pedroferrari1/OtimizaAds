@@ -7,6 +7,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
 import { SubscriptionPlan } from "@/types/subscription";
 import { STRIPE_PRODUCTS } from "@/stripe-config";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const SubscriptionPlans = () => {
   const { plans, userSubscription, createCheckoutSession, manageSubscription } = useSubscription();
@@ -78,11 +79,16 @@ const SubscriptionPlans = () => {
     if (isCurrentPlan(plan.id)) {
       manageSubscription();
     } else if (plan.name === "Gratuito") {
-      // Handle free plan logic if needed
+      // Lógica para plano gratuito
+      toast({
+        title: "Plano Gratuito",
+        description: "Você está utilizando o plano gratuito.",
+      });
     } else {
       setLoadingPlanId(plan.id);
       try {
         await createCheckoutSession(plan.id);
+        // O redirecionamento é feito dentro da função createCheckoutSession
       } finally {
         setLoadingPlanId(null);
       }
@@ -126,6 +132,84 @@ const SubscriptionPlans = () => {
       },
       is_active: true,
       stripe_price_id: STRIPE_PRODUCTS.basicPlan.priceId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+  
+  // Check if we already have the Plano Intermediário in our plans
+  const intermediatePlanExists = allPlans.some(plan => 
+    plan.name === "Plano Intermediário" || 
+    plan.stripe_price_id === STRIPE_PRODUCTS.intermediatePlan.priceId
+  );
+  
+  // If not, add it
+  if (!intermediatePlanExists) {
+    allPlans.push({
+      id: "stripe-intermediate-plan",
+      name: "Plano Intermediário",
+      price_monthly: 5990, // R$59.90 in cents
+      currency: "BRL",
+      features: {
+        generations: 250,
+        diagnostics: 100,
+        models: "all",
+        support: "priority",
+        optimization: true,
+        performance_analysis: true,
+        competitor_analysis: true,
+        premium_templates: true,
+        detailed_reports: true,
+        priority_support: true,
+        unlimited_generations: false,
+        unlimited_diagnostics: false,
+        custom_ai: false,
+        multiple_accounts: false,
+        api_access: false,
+        dedicated_support: false,
+        custom_training: false
+      },
+      is_active: true,
+      stripe_price_id: STRIPE_PRODUCTS.intermediatePlan.priceId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+  }
+  
+  // Check if we already have the Plano Premium in our plans
+  const premiumPlanExists = allPlans.some(plan => 
+    plan.name === "Plano Premium" || 
+    plan.stripe_price_id === STRIPE_PRODUCTS.premiumPlan.priceId
+  );
+  
+  // If not, add it
+  if (!premiumPlanExists) {
+    allPlans.push({
+      id: "stripe-premium-plan",
+      name: "Plano Premium",
+      price_monthly: 9990, // R$99.90 in cents
+      currency: "BRL",
+      features: {
+        generations: -1,
+        diagnostics: -1,
+        models: "all",
+        support: "dedicated",
+        optimization: true,
+        performance_analysis: true,
+        competitor_analysis: true,
+        premium_templates: true,
+        detailed_reports: true,
+        priority_support: true,
+        unlimited_generations: true,
+        unlimited_diagnostics: true,
+        custom_ai: true,
+        multiple_accounts: true,
+        api_access: true,
+        dedicated_support: true,
+        custom_training: true
+      },
+      is_active: true,
+      stripe_price_id: STRIPE_PRODUCTS.premiumPlan.priceId,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
@@ -199,12 +283,30 @@ const SubscriptionPlans = () => {
                   variant={isCurrent ? "secondary" : isPopular ? "default" : "outline"}
                   className="w-full"
                   size="lg"
-                  disabled={(isCurrent && plan.name !== "Gratuito") || isButtonLoading}
+                  disabled={isButtonLoading || (isCurrent && plan.name !== "Gratuito")}
                 >
                   {isButtonLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                   {isCurrent && !isButtonLoading && <Users className="h-4 w-4 mr-2" />}
                   {getButtonText(plan)}
                 </Button>
+                {plan.name !== "Gratuito" && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xs text-center mt-2 text-gray-500 cursor-help flex items-center justify-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="20" className="mr-1">
+                            <path d="M9.17 7.209c0-.438.107-.765.322-.983.214-.218.536-.327.965-.327.43 0 .752.11.966.327.215.218.322.545.322.983 0 .437-.107.764-.322.982-.214.217-.536.326-.966.326-.429 0-.75-.109-.965-.326-.215-.218-.322-.545-.322-.982zm12.56-2.466H8.431v7.496h13.3V4.743z" fill="#32325D"/>
+                            <path d="M8.431 12.239h13.3v-2.27l-13.3.001v2.269z" fill="#32325D"/>
+                          </svg>
+                          Pagamento seguro via Stripe
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">Seus dados de pagamento são processados com segurança pelo Stripe, líder mundial em pagamentos online.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </CardContent>
             </Card>
           );

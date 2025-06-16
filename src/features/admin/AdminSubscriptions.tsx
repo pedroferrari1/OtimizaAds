@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { Calendar, RefreshCw, Settings } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
 import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminSubscriptions = () => {
   const { 
@@ -16,10 +17,41 @@ const AdminSubscriptions = () => {
     manageSubscription,
     refreshSubscription 
   } = useSubscription();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshSubscription();
+      
+      // Registrar atividade de administrador
+      if (isAdmin) {
+        await supabase.from('audit_logs').insert({
+          admin_user_id: user?.id,
+          action: 'subscription_data_refreshed',
+          details: { timestamp: new Date().toISOString() }
+        });
+      }
+      
+      toast({
+        title: "Dados atualizados",
+        description: "As informações de assinatura foram atualizadas com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar as informações de assinatura.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    refreshSubscription();
+    handleRefreshData();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -73,9 +105,14 @@ const AdminSubscriptions = () => {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button onClick={refreshSubscription} variant="outline" size="sm">
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Atualizar
+                    <Button 
+                      onClick={handleRefreshData} 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={isRefreshing}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                      {isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}
                     </Button>
                     <Button onClick={manageSubscription} variant="outline" size="sm">
                       <Settings className="h-4 w-4 mr-2" />
@@ -95,7 +132,7 @@ const AdminSubscriptions = () => {
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
                         currency: 'BRL'
-                      }).format(userSubscription.plan.price_monthly / 100)}/mês
+                      }).format((userSubscription.plan.price_monthly || 0) / 100)}/mês
                     </p>
                   </div>
                   

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 interface AIModel {
   id: string;
@@ -37,7 +36,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
     is_active: true,
   });
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const [changeReason, setChangeReason] = useState('');
 
   useEffect(() => {
     fetchModels();
@@ -79,18 +78,30 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
     try {
       const data = {
         ...formData,
-        level_identifier: formData.level_identifier || null,
+        level_identifier: formData.level_identifier || null
       };
 
       if (configuration) {
-        // Atualizar configuração existente
-        const { error } = await supabase
-          .from('ai_configurations')
-          .update(data)
-          .eq('id', configuration.id);
+        // Atualizar configuração existente usando a nova função JSON
+        const { error } = await supabase.rpc('update_ai_configuration', {
+          config_id: configuration.id,
+          config_data: {
+            config_level: data.config_level,
+            level_identifier: data.level_identifier,
+            model_id: data.model_id,
+            system_prompt: data.system_prompt,
+            temperature: data.temperature,
+            max_tokens: data.max_tokens,
+            top_p: data.top_p,
+            frequency_penalty: data.frequency_penalty,
+            presence_penalty: data.presence_penalty,
+            is_active: data.is_active
+          },
+          change_reason: changeReason || 'Atualização via painel administrativo'
+        });
 
         if (error) throw error;
-
+        
         toast({
           title: "Sucesso",
           description: "Configuração atualizada com sucesso.",
@@ -102,7 +113,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
           .insert([data]);
 
         if (error) throw error;
-
+        
         toast({
           title: "Sucesso",
           description: "Configuração criada com sucesso.",
@@ -262,6 +273,17 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
                 onChange={(e) => setFormData(prev => ({ ...prev, presence_penalty: parseFloat(e.target.value) }))}
               />
             </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="change_reason">Motivo da Alteração</Label>
+            <Textarea
+              id="change_reason"
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+              placeholder="Descreva o motivo desta alteração para o registro de auditoria..."
+              rows={2}
+            />
           </div>
 
           <div className="flex items-center space-x-2">

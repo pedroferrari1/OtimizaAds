@@ -5,17 +5,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage, FormHelperText } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Edit, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Edit, Trash2, AlertCircle, Info } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 const modelSchema = z.object({
   model_name: z.string().min(1, "Nome do modelo é obrigatório"),
@@ -45,8 +45,8 @@ type ModelInsertData = {
 export const ModelManager = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<any>(null);
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const form = useForm<ModelFormData>({
     resolver: zodResolver(modelSchema),
@@ -74,9 +74,34 @@ export const ModelManager = () => {
     },
   });
 
+  // Função para verificar se o nome do modelo já existe
+  const checkModelNameExists = (modelName: string, excludeId?: string) => {
+    if (!models) return false;
+    return models.some(model => 
+      model.model_name.toLowerCase() === modelName.toLowerCase() && 
+      model.id !== excludeId
+    );
+  };
+
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      // Verificar se o nome do modelo já existe
+      if (checkModelNameExists(data.model_name)) {
+        throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
+      }
+
       // Ensure all required fields are present and convert to the correct insert type
+      // Verificar se o modelo já existe
+      const { data: existingModel, error: checkError } = await supabase
+        .from("ai_models")
+        .select("id")
+        .eq("model_name", data.model_name)
+        .maybeSingle();
+        
+      if (existingModel) {
+        throw new Error("Um modelo com este nome já existe. Por favor, escolha um nome diferente.");
+      }
+      
       const insertData: ModelInsertData = {
         model_name: data.model_name,
         provider: data.provider,
@@ -113,6 +138,25 @@ export const ModelManager = () => {
 
   const updateModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      // Verificar se o modelo já existe com este nome (exceto o próprio modelo)
+      if (editingModel) {
+        const { data: existingModel, error: checkError } = await supabase
+          .from("ai_models")
+          .select("id")
+          .eq("model_name", data.model_name)
+          .neq("id", editingModel.id)
+          .maybeSingle();
+          
+        if (existingModel) {
+          throw new Error("Um modelo com este nome já existe. Por favor, escolha um nome diferente.");
+        }
+      }
+      
+      // Verificar se o nome do modelo já existe (excluindo o modelo atual)
+      if (checkModelNameExists(data.model_name, editingModel?.id)) {
+        throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
+      }
+
       const updateData: ModelInsertData = {
         model_name: data.model_name,
         provider: data.provider,
@@ -150,27 +194,52 @@ export const ModelManager = () => {
   });
 
   const deleteModelMutation = useMutation({
-    mutationFn: async (modelId: string) => {
+    mutationFn: async (model: any) => {
+      // Verificar se o modelo está sendo usado em alguma configuração
+      const { data: usages, error: usageError } = await supabase
+        .from("ai_configurations")
+        .select("id")
+        .eq("model_id", model.id);
+      
+      if (usageError) throw usageError;
+      
+      if (usages && usages.length > 0) {
+        throw new Error(`Este modelo está sendo usado em ${usages.length} configurações e não pode ser excluído.`);
+      }
+      
+      // Se não estiver em uso, podemos excluir
       const { error } = await supabase
         .from("ai_models")
-        .delete()
-        .eq("id", modelId);
+        .update({ is_active: false })
+        .eq("id", model.id);
 
       if (error) throw error;
+      
+      // Registrar no log de auditoria
+      await supabase.from('audit_logs').insert({
+        admin_user_id: (await supabase.auth.getUser()).data.user?.id,
+        action: 'model_deactivated',
+        details: { 
+          model_name: model.model_name,
+          provider: model.provider
+        }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ai-models"] });
       toast({
-        title: "Modelo excluído",
-        description: "O modelo foi excluído com sucesso.",
+        title: "Modelo desativado",
+        description: "O modelo foi desativado com sucesso.",
       });
+      setConfirmDelete(null);
     },
     onError: (error) => {
       toast({
-        title: "Erro ao excluir modelo",
+        title: "Erro ao desativar modelo",
         description: error.message,
         variant: "destructive",
       });
+      setConfirmDelete(null);
     },
   });
 
@@ -202,10 +271,8 @@ export const ModelManager = () => {
     }
   };
 
-  const handleDelete = (modelId: string) => {
-    if (confirm("Tem certeza que deseja excluir este modelo?")) {
-      deleteModelMutation.mutate(modelId);
-    }
+  const handleDelete = (model: any) => {
+    setConfirmDelete(model.id);
   };
 
   if (isLoading) {
@@ -283,7 +350,7 @@ export const ModelManager = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDelete(model.id)}
+                      onClick={() => handleDelete(model)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -318,6 +385,9 @@ export const ModelManager = () => {
                       <FormControl>
                         <Input placeholder="ex: gpt-4o-mini" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        O nome deve ser único no sistema
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -482,6 +552,53 @@ export const ModelManager = () => {
           </DialogContent>
         </Dialog>
       </CardContent>
+      
+      {/* Diálogo de confirmação para desativação */}
+      <Dialog open={!!confirmDelete} onOpenChange={(open) => !open && setConfirmDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-500" />
+              Confirmar Desativação
+            </DialogTitle>
+            <DialogDescription>
+              Você está prestes a desativar este modelo. Isso o tornará indisponível para novas configurações.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 mb-4">
+            <div className="flex items-start gap-2">
+              <Info className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div>
+                <p className="text-sm text-yellow-800">
+                  Por segurança, os modelos não são excluídos permanentemente, apenas desativados.
+                </p>
+                <p className="text-sm text-yellow-700 mt-1">
+                  Isso preserva a integridade dos dados históricos e configurações existentes.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmDelete(null)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => {
+                const model = models?.find(m => m.id === confirmDelete);
+                if (model) {
+                  deleteModelMutation.mutate(model);
+                }
+              }}
+              disabled={deleteModelMutation.isPending}
+            >
+              {deleteModelMutation.isPending ? "Desativando..." : "Desativar Modelo"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

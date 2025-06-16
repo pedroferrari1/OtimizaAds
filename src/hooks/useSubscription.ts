@@ -116,6 +116,14 @@ export const useSubscription = () => {
             period_end: periodEnd.toISOString()
           });
       }
+      
+      // Atualizar métricas de uso global
+      await supabase.functions.invoke('track-usage', {
+        body: { 
+          feature_type: feature,
+          user_id: user.id
+        }
+      });
     } catch (error) {
       console.error('Error incrementing usage:', error);
     }
@@ -123,6 +131,7 @@ export const useSubscription = () => {
 
   const createCheckoutSession = async (planId: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan_id: planId }
       });
@@ -130,7 +139,8 @@ export const useSubscription = () => {
       if (error) throw error;
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        // Redirecionar para a URL de checkout do Stripe
+        window.location.href = data.url;
       } else {
         throw new Error('URL de checkout não recebida');
       }
@@ -141,17 +151,21 @@ export const useSubscription = () => {
         description: "Não foi possível iniciar o checkout. Verifique se as configurações do Stripe estão corretas.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const manageSubscription = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.functions.invoke('customer-portal');
 
       if (error) throw error;
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        // Redirecionar para o portal do cliente do Stripe
+        window.location.href = data.url;
       } else {
         throw new Error('URL do portal não recebida');
       }
@@ -162,6 +176,8 @@ export const useSubscription = () => {
         description: "Não foi possível abrir o portal de gerenciamento. Verifique se as configurações do Stripe estão corretas.",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 

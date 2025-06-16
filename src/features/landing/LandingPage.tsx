@@ -1,10 +1,9 @@
-
-import LandingHeader from "@/components/landing/LandingHeader";
-import HeroSection from "@/components/landing/HeroSection";
-import FeaturesSection from "@/components/landing/FeaturesSection";
-import PricingSection from "@/components/landing/PricingSection";
-import CTASection from "@/components/landing/CTASection";
-import LandingFooter from "@/components/landing/LandingFooter";
+import LandingHeader from "./components/LandingHeader";
+import HeroSection from "./components/HeroSection";
+import FeaturesSection from "./components/FeaturesSection";
+import PricingSection from "./components/PricingSection";
+import CTASection from "./components/CTASection";
+import LandingFooter from "./components/LandingFooter";
 
 const LandingPage = () => {
   return (

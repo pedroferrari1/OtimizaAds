@@ -3,9 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Search, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/features/auth";
 
 const Dashboard = () => {
-  const [userName] = useState("Usuário"); // TODO: Get from auth context
+  const { profile } = useAuth();
+  const userName = profile?.full_name || "Usuário";
 
   return (
     <div className="space-y-6">

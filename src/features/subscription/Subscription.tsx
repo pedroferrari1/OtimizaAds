@@ -9,6 +9,9 @@ import { useAuth } from "@/features/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
 import SubscriptionPlans from "@/components/subscription/SubscriptionPlans";
+import SubscriptionDetails from "./components/SubscriptionDetails";
+import SubscriptionHistory from "./components/SubscriptionHistory";
+import PaymentMethodDisplay from "@/components/subscription/PaymentMethodDisplay";
 
 const Subscription = () => {
   const { 
@@ -23,6 +26,10 @@ const Subscription = () => {
   const location = useLocation();
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCanceled, setShowCanceled] = useState(false);
+  const [usageData, setUsageData] = useState<{
+    generations: { current: number; limit: number };
+    diagnostics: { current: number; limit: number };
+  } | undefined>(undefined);
 
   useEffect(() => {
     refreshSubscription();
@@ -37,6 +44,7 @@ const Subscription = () => {
       toast({
         title: "Assinatura realizada com sucesso!",
         description: "Sua assinatura foi processada e está ativa.",
+        variant: "default",
       });
     }
     
@@ -45,7 +53,7 @@ const Subscription = () => {
       toast({
         title: "Checkout cancelado",
         description: "Você cancelou o processo de checkout.",
-        variant: "destructive",
+        variant: "secondary",
       });
     }
     
@@ -56,25 +64,33 @@ const Subscription = () => {
     }
   }, [location]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-600';
-      case 'cancelled': return 'bg-yellow-600';
-      case 'past_due': return 'bg-red-600';
-      default: return 'bg-gray-600';
+  useEffect(() => {
+    if (user) {
+      fetchUsageData();
     }
-  };
+  }, [user, userSubscription]);
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'active': return 'Ativo';
-      case 'cancelled': return 'Cancelado';
-      case 'past_due': return 'Em Atraso';
-      default: return status;
+  const fetchUsageData = async () => {
+    try {
+      const [generationsUsage, diagnosticsUsage] = await Promise.all([
+        checkFeatureUsage('generations'),
+        checkFeatureUsage('diagnostics')
+      ]);
+      
+      if (generationsUsage && diagnosticsUsage) {
+        setUsageData({
+          generations: {
+            current: generationsUsage.current_usage,
+            limit: generationsUsage.limit_value
+          },
+          diagnostics: {
+            current: diagnosticsUsage.current_usage,
+            limit: diagnosticsUsage.limit_value
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao buscar dados de uso:', error);
     }
   };
 
@@ -105,6 +121,13 @@ const Subscription = () => {
                 <p className="text-green-700 mt-1">
                   Sua assinatura foi processada e está ativa. Você já pode aproveitar todos os benefícios do seu plano.
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 bg-white hover:bg-white" 
+                  onClick={() => setShowSuccess(false)}
+                >
+                  Fechar
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -121,6 +144,13 @@ const Subscription = () => {
                 <p className="text-yellow-700 mt-1">
                   Você cancelou o processo de checkout. Se precisar de ajuda ou tiver dúvidas, entre em contato com nosso suporte.
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4 bg-white hover:bg-white" 
+                  onClick={() => setShowCanceled(false)}
+                >
+                  Fechar
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -130,74 +160,13 @@ const Subscription = () => {
       {user && userSubscription ? (
         <div className="space-y-8">
           {/* Current Subscription Status */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    Sua Assinatura
-                    <Badge className={getStatusColor(userSubscription.status)}>
-                      {getStatusText(userSubscription.status)}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    Gerencie sua assinatura e veja seu uso atual
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={refreshSubscription} variant="outline" size="sm">
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Atualizar
-                  </Button>
-                  <Button onClick={manageSubscription} variant="outline" size="sm">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Gerenciar
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Plano Atual</h3>
-                  <p className="text-2xl font-bold text-blue-600">
-                    {userSubscription.plan.name}
-                  </p>
-                  <p className="text-gray-600">
-                    {new Intl.NumberFormat('pt-BR', {
-                      style: 'currency',
-                      currency: 'BRL'
-                    }).format(userSubscription.plan.price_monthly / 100)}/mês
-                  </p>
-                </div>
-                
-                {userSubscription.current_period_end && (
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Próxima Cobrança</h3>
-                    <p className="text-lg flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(userSubscription.current_period_end)}
-                    </p>
-                    {userSubscription.cancel_at_period_end && (
-                      <p className="text-sm text-yellow-600 font-medium">
-                        Cancelamento agendado
-                      </p>
-                    )}
-                  </div>
-                )}
-                
-                <div>
-                  <h3 className="font-semibold text-gray-900">Status</h3>
-                  <Badge className={getStatusColor(userSubscription.status)}>
-                    {getStatusText(userSubscription.status)}
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Usage Statistics */}
-          <UsageCard />
+          <SubscriptionDetails
+            userSubscription={userSubscription}
+            onManage={manageSubscription}
+            onRefresh={refreshSubscription}
+            loading={loading}
+            usageData={usageData}
+          />
 
           {/* All Plans */}
           <div>
@@ -206,6 +175,20 @@ const Subscription = () => {
             </h2>
             <SubscriptionPlans />
           </div>
+          
+          {/* Payment Method */}
+          {userSubscription && userSubscription.status === 'active' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PaymentMethodDisplay
+                brand="visa" // Exemplo - idealmente viria do Stripe
+                last4="4242" // Exemplo - idealmente viria do Stripe
+                isActive={userSubscription.status === 'active'}
+                onManage={manageSubscription}
+              />
+              
+              <SubscriptionHistory />
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-8">
@@ -224,83 +207,6 @@ const Subscription = () => {
         </div>
       )}
     </div>
-  );
-};
-
-// Component for showing usage statistics
-const UsageCard = () => {
-  const { checkFeatureUsage } = useSubscription();
-  const [generationsUsage, setGenerationsUsage] = useState<any>(null);
-  const [diagnosticsUsage, setDiagnosticsUsage] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchUsage = async () => {
-      const [gens, diags] = await Promise.all([
-        checkFeatureUsage('generations'),
-        checkFeatureUsage('diagnostics')
-      ]);
-      setGenerationsUsage(gens);
-      setDiagnosticsUsage(diags);
-    };
-
-    fetchUsage();
-  }, []);
-
-  const getUsagePercentage = (current: number, limit: number) => {
-    if (limit === -1) return 0; // Unlimited
-    return Math.min((current / limit) * 100, 100);
-  };
-
-  const getUsageColor = (current: number, limit: number) => {
-    if (limit === -1) return "bg-green-500";
-    const percentage = (current / limit) * 100;
-    if (percentage >= 90) return "bg-red-500";
-    if (percentage >= 75) return "bg-yellow-500";
-    return "bg-blue-500";
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Uso do Plano</CardTitle>
-        <CardDescription>
-          Acompanhe seu uso mensal dos recursos
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {generationsUsage && (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Gerações de Anúncios</span>
-                <span className="text-sm text-gray-600">
-                  {generationsUsage.current_usage} / {generationsUsage.limit_value === -1 ? '∞' : generationsUsage.limit_value}
-                </span>
-              </div>
-              <Progress 
-                value={getUsagePercentage(generationsUsage.current_usage, generationsUsage.limit_value)}
-                className="h-2"
-              />
-            </div>
-          )}
-          
-          {diagnosticsUsage && (
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Diagnósticos</span>
-                <span className="text-sm text-gray-600">
-                  {diagnosticsUsage.current_usage} / {diagnosticsUsage.limit_value === -1 ? '∞' : diagnosticsUsage.limit_value}
-                </span>
-              </div>
-              <Progress 
-                value={getUsagePercentage(diagnosticsUsage.current_usage, diagnosticsUsage.limit_value)}
-                className="h-2"
-              />
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

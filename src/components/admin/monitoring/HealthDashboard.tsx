@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Activity, Clock, AlertTriangle, TrendingUp, RefreshCw } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -12,6 +12,7 @@ interface HealthMetrics {
   avgLatency: number;
   errorRate: number;
   requestsPerMinute: number;
+  lastUpdated: string;
 }
 
 interface ChartData {
@@ -24,11 +25,11 @@ export const HealthDashboard = () => {
     uptime: 99.9,
     avgLatency: 120,
     errorRate: 0.5,
-    requestsPerMinute: 45
+    requestsPerMinute: 45,
+    lastUpdated: new Date().toISOString()
   });
   const [latencyData, setLatencyData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   const fetchHealthMetrics = async () => {
     try {
@@ -60,9 +61,10 @@ export const HealthDashboard = () => {
       // Simular outras métricas (em produção, viria de fontes reais)
       setMetrics(prev => ({
         ...prev,
-        uptime: 99.9,
-        errorRate: 0.5,
-        requestsPerMinute: 45
+        uptime: 99.95,
+        errorRate: 0.3,
+        requestsPerMinute: 45,
+        lastUpdated: new Date().toISOString()
       }));
 
     } catch (error) {
@@ -238,6 +240,9 @@ export const HealthDashboard = () => {
                   {service.status === 'online' ? 'Online' : 
                    service.status === 'unstable' ? 'Instável' : 'Offline'}
                 </span>
+                <p className="text-xs text-gray-500 mt-1">
+                  Última atualização: {new Date(metrics.lastUpdated).toLocaleTimeString('pt-BR')}
+                </p>
               </div>
             ))}
           </div>
