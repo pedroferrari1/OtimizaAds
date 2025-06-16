@@ -5,3 +5,7 @@ export { default as AdminSettings } from "./AdminSettings";
 export { default as AdminAIConfig } from "./AdminAIConfig";
 export { default as AdminMonitoring } from "./AdminMonitoring";
 export { default as AdminSubscriptions } from "./subscriptions/AdminSubscriptions";
+
+// Exportações de subcomponentes
+export * from "./dashboard";
+export * from "./monitoring";
