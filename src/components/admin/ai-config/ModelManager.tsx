@@ -130,6 +130,15 @@ export const ModelManager = () => {
     );
   };
 
+  // Converter valores entre custo por token e custo por milhão
+  const convertToPerToken = (perMillion: number) => {
+    return perMillion / 1000000;
+  };
+
+  const convertToPerMillion = (perToken: number) => {
+    return perToken * 1000000;
+  };
+
   // Mutação para criar modelo
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
@@ -139,13 +148,14 @@ export const ModelManager = () => {
         throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
       }
 
+      // Converter valores de custo por milhão para custo por token
       const insertData: ModelInsertData = {
         model_name: data.model_name,
         provider_id: data.provider_id,
         provider_model_id: data.provider_model_id,
         model_type: data.model_type,
-        cost_per_token_input: data.cost_per_token_input,
-        cost_per_token_output: data.cost_per_token_output,
+        cost_per_token_input: convertToPerToken(data.cost_per_token_input || 0),
+        cost_per_token_output: convertToPerToken(data.cost_per_token_output || 0),
         max_tokens: data.max_tokens,
         temperature: data.temperature,
         top_p: data.top_p,
@@ -189,13 +199,14 @@ export const ModelManager = () => {
         throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
       }
 
+      // Converter valores de custo por milhão para custo por token
       const updateData: ModelInsertData = {
         model_name: data.model_name,
         provider_id: data.provider_id,
         provider_model_id: data.provider_model_id,
         model_type: data.model_type,
-        cost_per_token_input: data.cost_per_token_input,
-        cost_per_token_output: data.cost_per_token_output,
+        cost_per_token_input: convertToPerToken(data.cost_per_token_input || 0),
+        cost_per_token_output: convertToPerToken(data.cost_per_token_output || 0),
         max_tokens: data.max_tokens,
         temperature: data.temperature,
         top_p: data.top_p,
@@ -291,8 +302,9 @@ export const ModelManager = () => {
       provider_id: model.provider_id,
       provider_model_id: model.provider_model_id,
       model_type: model.model_type,
-      cost_per_token_input: model.cost_per_token_input || 0,
-      cost_per_token_output: model.cost_per_token_output || 0,
+      // Converter de custo por token para custo por milhão
+      cost_per_token_input: convertToPerMillion(model.cost_per_token_input || 0),
+      cost_per_token_output: convertToPerMillion(model.cost_per_token_output || 0),
       max_tokens: model.max_tokens || 4096,
       temperature: model.temperature || 0.7,
       top_p: model.top_p || 0.9,
@@ -377,8 +389,8 @@ export const ModelManager = () => {
                 <TableCell>{model.max_tokens || "4096"}</TableCell>
                 <TableCell>
                   <span className="text-xs">
-                    In: {(model.cost_per_token_input || 0).toFixed(8)} / 
-                    Out: {(model.cost_per_token_output || 0).toFixed(8)}
+                    In: ${convertToPerMillion(model.cost_per_token_input || 0).toFixed(2)}/1M / 
+                    Out: ${convertToPerMillion(model.cost_per_token_output || 0).toFixed(2)}/1M
                   </span>
                 </TableCell>
                 <TableCell>
@@ -706,18 +718,18 @@ export const ModelManager = () => {
                         name="cost_per_token_input"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Custo por Token (Entrada)</FormLabel>
+                            <FormLabel>Custo por 1M Tokens (Entrada)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
-                                step="0.00000001"
-                                placeholder="0.00000015"
+                                step="0.01"
+                                placeholder="0.13"
                                 {...field}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormDescription>
-                              Custo para tokens de entrada (por token)
+                              Custo para 1M tokens de entrada (ex: $0.13)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
@@ -729,18 +741,18 @@ export const ModelManager = () => {
                         name="cost_per_token_output"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Custo por Token (Saída)</FormLabel>
+                            <FormLabel>Custo por 1M Tokens (Saída)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
-                                step="0.00000001"
-                                placeholder="0.00000060"
+                                step="0.01"
+                                placeholder="0.39"
                                 {...field}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                               />
                             </FormControl>
                             <FormDescription>
-                              Custo para tokens de saída (por token)
+                              Custo para 1M tokens de saída (ex: $0.39)
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
