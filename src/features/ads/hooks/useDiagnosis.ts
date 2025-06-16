@@ -145,8 +145,8 @@ export const useDiagnosis = () => {
       if (user) {
         try {
           await supabase.rpc('increment_usage_counter', {
-            user_uuid: user.id,
-            feature_type: 'diagnostics'
+            p_user_uuid: user.id,
+            p_feature_type: 'diagnostics'
           });
         } catch (error) {
           console.error('Erro ao incrementar contador de uso:', error);
