@@ -39,7 +39,7 @@ interface SubscriptionFeatures {
   api_access?: boolean;
   dedicated_support?: boolean;
   custom_training?: boolean;
-  [key: string]: any;
+  [key: string]: number | string | boolean | undefined;
 }
 
 /**
@@ -108,6 +108,6 @@ interface PaymentMethod {
 interface SubscriptionEvent {
   id: string;
   action: string;
-  details: any;
+  details: Record<string, unknown>;
   created_at: string;
 }

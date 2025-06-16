@@ -50,7 +50,7 @@ const AdminUsers = () => {
       }
 
       setUsers(data || []);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao buscar usuários:', error);
       toast({
         title: "Erro ao carregar usuários",
@@ -108,7 +108,7 @@ const AdminUsers = () => {
       // Atualizar lista
       await fetchUsers();
       setActionDialog({ open: false, type: 'activate', user: null });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao atualizar usuário:', error);
       toast({
         title: "Erro ao atualizar usuário",

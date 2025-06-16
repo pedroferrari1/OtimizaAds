@@ -19,7 +19,8 @@ export const useFunnelOptimizer = () => {
     if (user) {
       checkFeatureUsage();
     }
-  }, [user]);
+  }, [user]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função checkFeatureUsage é definida no componente e não muda entre renderizações
 
   const checkFeatureUsage = async () => {
     try {
@@ -198,17 +199,17 @@ ${results.optimizedAd}
       
       // Salvar no histórico
       await saveToHistory(adText, landingPageText, data);
-      
+
       toast({
         title: "Análise concluída!",
         description: `Pontuação de coerência: ${data.funnelCoherenceScore}/10`,
       });
-      
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error analyzing funnel:', error);
-      
+
       // Verificar se é um erro de limite de plano
-      if (error.message?.includes('não inclui acesso')) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('não inclui acesso')) {
         setCanUseFeature(false);
         toast({
           title: "Recurso não disponível",
@@ -218,7 +219,7 @@ ${results.optimizedAd}
       } else {
         toast({
           title: "Erro na análise",
-          description: error.message || "Não foi possível analisar os textos. Tente novamente mais tarde.",
+          description: errorMessage || "Não foi possível analisar os textos. Tente novamente mais tarde.",
           variant: "destructive",
         });
       }

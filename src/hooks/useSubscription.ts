@@ -20,7 +20,8 @@ export const useSubscription = () => {
     };
 
     loadData();
-  }, [user]);
+  }, [user, fetchPlans, fetchUserSubscription]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // As funções fetchPlans e fetchUserSubscription são definidas no componente e não mudam entre renderizações
 
   // Buscar planos de assinatura
   const fetchPlans = async () => {

@@ -162,10 +162,11 @@ export const useDiagnosis = () => {
         title: "Análise concluída!",
         description: "Seu anúncio foi analisado com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Tente novamente em alguns instantes.";
       toast({
         title: "Erro na análise",
-        description: error.message || "Tente novamente em alguns instantes.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

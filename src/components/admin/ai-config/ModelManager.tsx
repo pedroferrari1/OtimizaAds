@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 // Schema para validação do modelo
 const modelSchema = z.object({
@@ -88,7 +89,7 @@ export const ModelManager = () => {
   // Buscar modelos
   const { data: models, isLoading } = useQuery({
     queryKey: ["ai-models"],
-    queryFn: async () => {
+    queryFn: async (): Promise<Array<Record<string, unknown>>> => {
       const { data, error } = await supabase
         .from("ai_models")
         .select(`
@@ -107,7 +108,7 @@ export const ModelManager = () => {
   });
 
   // Buscar provedores para o dropdown
-  const { data: providers } = useQuery({
+  const { data: providers } = useQuery<Array<Record<string, unknown>>>({
     queryKey: ["provider-configurations"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -245,7 +246,7 @@ export const ModelManager = () => {
 
   // Mutação para deletar modelo
   const deleteModelMutation = useMutation({
-    mutationFn: async (model: any) => {
+    mutationFn: async (model: Record<string, unknown>) => {
       // Verificar se o modelo está sendo usado em alguma configuração
       const { data: usages, error: usageError } = await supabase
         .from("ai_configurations")
@@ -295,7 +296,7 @@ export const ModelManager = () => {
   });
 
   // Manipular edição de modelo
-  const handleEdit = (model: any) => {
+  const handleEdit = (model: Record<string, unknown>) => {
     setEditingModel(model);
     form.reset({
       model_name: model.model_name,

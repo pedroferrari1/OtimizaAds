@@ -18,6 +18,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<{ error: unknown }>;
+  signIn: (email: string, password: string) => Promise<{ error: unknown }>;
   signOut: () => Promise<void>;
   loading: boolean;
   isAdmin: boolean;
@@ -138,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       return { error };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup exception:', error);
       return { error };
     }
@@ -161,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       return { error };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login exception:', error);
       return { error };
     }
@@ -174,7 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         title: "Logout realizado",
         description: "Você foi desconectado com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout error:', error);
       toast({
         title: "Erro no logout",

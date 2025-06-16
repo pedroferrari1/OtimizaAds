@@ -59,10 +59,10 @@ export const useAdGenerator = () => {
     try {
       // TODO: Integrate with Novita.ai API via Supabase Edge Function
       console.log("Generating ads for:", { productName, productDescription, targetAudience });
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
+
       // Mock generated ads
       const mockAds = [
         `🔥 ${productName} está aqui! ${productDescription.substring(0, 50)}... Perfeito para ${targetAudience}. Não perca esta oportunidade! 👇`,
@@ -71,9 +71,9 @@ export const useAdGenerator = () => {
         `${productName}: A solução que ${targetAudience} estava esperando! ${productDescription.substring(0, 50)}... Aproveite agora!`,
         `Revolucione sua experiência com ${productName}! ${productDescription.substring(0, 40)}... Desenvolvido especialmente para ${targetAudience}.`
       ];
-      
+
       setGeneratedAds(mockAds);
-      
+
       // Save to history
       const inputData = {
         productName,
@@ -81,12 +81,12 @@ export const useAdGenerator = () => {
         targetAudience
       };
       await saveToHistory(inputData, mockAds);
-      
+
       toast({
         title: "Anúncios gerados com sucesso!",
         description: "5 variações foram criadas para seu produto.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Erro ao gerar anúncios",
         description: "Tente novamente em alguns instantes.",

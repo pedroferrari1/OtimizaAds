@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { Json } from "@/integrations/supabase/types";
 
 interface AIConfiguration {
   id?: string;
@@ -81,7 +82,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
 
     try {
       // Preparar dados
-      const data = {
+      const data: Record<string, unknown> = {
         ...formData,
         level_identifier: formData.level_identifier || null
       };

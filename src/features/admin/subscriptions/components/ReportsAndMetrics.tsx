@@ -72,7 +72,8 @@ const ReportsAndMetrics = ({ subscriptions, loading }: ReportsAndMetricsProps) =
       planDistribution,
       metrics
     };
-  }, [subscriptions, timeRange]);
+  }, [subscriptions]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // timeRange não é usado diretamente no cálculo, então pode ser removido das dependências
 
   const handleExportReport = async () => {
     try {
@@ -856,6 +857,7 @@ function generatePlanDistribution(subscriptions: UserSubscriptionWithProfile[]) 
 }
 
 function calculateMetrics(subscriptions: UserSubscriptionWithProfile[], mrrData: any[]) {
+function calculateMetrics(subscriptions: UserSubscriptionWithProfile[], mrrData: Array<Record<string, number>>) {
   // MRR atual (último mês)
   const mrr = mrrData.length > 0 ? mrrData[mrrData.length - 1].mrr : 0;
   

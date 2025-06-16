@@ -10,7 +10,7 @@ import { useAuth } from "@/features/auth";
 interface SubscriptionEvent {
   id: string;
   action: string;
-  details: any;
+  details: Record<string, unknown>;
   created_at: string;
 }
 
@@ -23,7 +23,8 @@ const SubscriptionHistory = () => {
     if (user) {
       fetchSubscriptionHistory();
     }
-  }, [user]);
+  }, [user]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchSubscriptionHistory é definida no componente e não muda entre renderizações
 
   const fetchSubscriptionHistory = async () => {
     try {

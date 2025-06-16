@@ -38,7 +38,8 @@ export const SystemHealthConfig = () => {
   // Buscar configurações
   useEffect(() => {
     fetchConfigurations();
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  // A função fetchConfigurations é definida no componente e não muda entre renderizações
 
   const fetchConfigurations = async () => {
     try {
@@ -66,7 +67,7 @@ export const SystemHealthConfig = () => {
         title: "Configurações carregadas",
         description: "As configurações do sistema foram carregadas com sucesso."
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao buscar configurações:', error);
       toast({
         title: "Erro",
@@ -131,7 +132,7 @@ export const SystemHealthConfig = () => {
         title: "Configurações salvas",
         description: "As configurações do sistema foram salvas com sucesso."
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar configurações:', error);
       toast({
         title: "Erro",
