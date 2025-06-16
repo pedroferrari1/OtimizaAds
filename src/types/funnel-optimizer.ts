@@ -25,7 +25,7 @@ export interface FunnelAnalysisResult {
 /**
  * Interface para fatores de coerência da análise de funil
  */
-export interface CoherenceFactors {
+interface CoherenceFactors {
   messageMatch: number;
   visualConsistency: number;
   valuePropositionAlignment: number;
@@ -36,7 +36,7 @@ export interface CoherenceFactors {
 /**
  * Interface para o log de análise de funil
  */
-export interface FunnelAnalysisLog {
+interface FunnelAnalysisLog {
   id: string;
   user_id: string;
   ad_text: string;
@@ -51,7 +51,7 @@ export interface FunnelAnalysisLog {
 /**
  * Interface para dados de analytics de funil
  */
-export interface FunnelAnalyticsData {
+interface FunnelAnalyticsData {
   logs: FunnelAnalysisLog[];
   totalAnalyses: number;
   avgCoherenceScore: number;
@@ -64,7 +64,7 @@ export interface FunnelAnalyticsData {
 /**
  * Interface para entrada da análise de funil
  */
-export interface FunnelAnalysisInput {
+interface FunnelAnalysisInput {
   adText: string;
   landingPageText: string;
   userId: string;

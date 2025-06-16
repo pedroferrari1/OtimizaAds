@@ -167,7 +167,7 @@ FormMessage.displayName = "FormMessage"
 export {
   
   Form,
-  FormHelperText,
+  
   FormItem,
   FormLabel,
   FormControl,

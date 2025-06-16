@@ -19,7 +19,7 @@ export interface SubscriptionPlan {
 /**
  * Interface para recursos incluídos em um plano
  */
-export interface SubscriptionFeatures {
+interface SubscriptionFeatures {
   generations?: number;
   diagnostics?: number;
   funnel_analysis?: number;
@@ -62,7 +62,7 @@ export interface UserSubscription {
 /**
  * Tipo para status de assinatura
  */
-export type SubscriptionStatus = 
+type SubscriptionStatus = 
   | 'active'
   | 'trialing'
   | 'past_due'
@@ -93,7 +93,7 @@ export interface FeatureUsage {
 /**
  * Interface para método de pagamento
  */
-export interface PaymentMethod {
+interface PaymentMethod {
   id: string;
   brand: string;
   last4: string;
@@ -105,7 +105,7 @@ export interface PaymentMethod {
 /**
  * Interface para evento de assinatura
  */
-export interface SubscriptionEvent {
+interface SubscriptionEvent {
   id: string;
   action: string;
   details: any;
