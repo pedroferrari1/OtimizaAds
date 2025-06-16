@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -18,7 +17,9 @@ import {
   Copy,
   TestTube,
   GitBranch,
-  Clock
+  Clock,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,8 @@ export const PromptEditor = () => {
   const [testInput, setTestInput] = useState("");
   const [expectedOutput, setExpectedOutput] = useState("");
   const [activeTab, setActiveTab] = useState("editor");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [promptToDelete, setPromptToDelete] = useState<PromptVersion | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -188,6 +191,34 @@ export const PromptEditor = () => {
     },
   });
 
+  // Delete prompt mutation
+  const deletePromptMutation = useMutation({
+    mutationFn: async (promptId: string) => {
+      const { error } = await supabase
+        .from("prompt_versions")
+        .update({ is_active: false })
+        .eq("id", promptId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      setPromptToDelete(null);
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "Sucesso",
+        description: "Prompt excluído com sucesso!",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao excluir prompt: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreatePrompt = () => {
     createPromptMutation.mutate(formData);
   };
@@ -201,11 +232,15 @@ export const PromptEditor = () => {
     }
   };
 
-  const handleTestPrompt = () => {
-    testPromptMutation.mutate({
-      input: testInput,
-      expected: expectedOutput || undefined,
-    });
+  const handleDeletePrompt = (prompt: PromptVersion) => {
+    setPromptToDelete(prompt);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePrompt = () => {
+    if (promptToDelete) {
+      deletePromptMutation.mutate(promptToDelete.id);
+    }
   };
 
   const handleDuplicatePrompt = (prompt: PromptVersion) => {
@@ -394,6 +429,14 @@ export const PromptEditor = () => {
                             }}
                           >
                             <TestTube className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeletePrompt(prompt)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -623,6 +666,42 @@ export const PromptEditor = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação para exclusão */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription>
+              Você está prestes a excluir o prompt <strong>{promptToDelete?.prompt_name} (v{promptToDelete?.version})</strong>. 
+              Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+            <p className="text-sm text-red-800">
+              A exclusão de um prompt pode afetar funcionalidades que dependem dele.
+              Certifique-se de que este prompt não está sendo utilizado em nenhum lugar.
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={confirmDeletePrompt}
+              disabled={deletePromptMutation.isPending}
+            >
+              {deletePromptMutation.isPending ? "Excluindo..." : "Excluir Prompt"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
