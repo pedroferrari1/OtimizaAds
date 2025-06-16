@@ -658,6 +658,15 @@ const PlanForm = ({
                 onChange={(e) => updateFeature('diagnostics', parseInt(e.target.value))}
               />
             </div>
+            <div>
+              <Label htmlFor="funnel_analysis">Análises de Funil (-1 para ilimitado)</Label>
+              <Input
+                id="funnel_analysis"
+                type="number"
+                value={formData.features.funnel_analysis || 0}
+                onChange={(e) => updateFeature('funnel_analysis', parseInt(e.target.value))}
+              />
+            </div>
           </div>
 
           <div>
