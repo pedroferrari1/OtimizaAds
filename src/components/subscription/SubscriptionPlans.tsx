@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
+import { useToast } from "@/hooks/use-toast";
 import { SubscriptionPlan } from "@/types/subscription";
 import { STRIPE_PRODUCTS } from "@/stripe-config";
 import PlanCard from "./plans/PlanCard";
@@ -14,6 +15,7 @@ interface SubscriptionPlansProps {
 const SubscriptionPlans = ({ compact = false }: SubscriptionPlansProps) => {
   const { plans, userSubscription, createCheckoutSession, manageSubscription } = useSubscription();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 
   // Verificar se um plano é o plano atual do usuário
@@ -170,13 +172,5 @@ function createStripePlan(type: "basic" | "intermediate" | "premium"): Subscript
     updated_at: new Date().toISOString()
   };
 }
-
-// Importação para o toast
-const { toast } = {
-  toast: (props: any) => {
-    // Esta importação é apenas para satisfazer o TypeScript
-    // A função real será usada no componente via useToast()
-  }
-};
 
 export default SubscriptionPlans;
