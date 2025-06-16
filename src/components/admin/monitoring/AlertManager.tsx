@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,12 +34,12 @@ export const AlertManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Form states
+  // Form states - Inicializar threshold_value com "0" em vez de string vazia
   const [formData, setFormData] = useState({
     alert_name: "",
     metric_type: "",
     comparison_operator: "greater_than",
-    threshold_value: "",
+    threshold_value: "0", // Mudança: inicializar com "0" em vez de ""
     notification_method: "email",
     notification_target: "",
   });
@@ -62,13 +61,19 @@ export const AlertManager = () => {
   // Create alert mutation
   const createAlertMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
+      // Validar se threshold_value é um número válido
+      const thresholdValue = parseFloat(data.threshold_value);
+      if (isNaN(thresholdValue)) {
+        throw new Error("Valor limite deve ser um número válido");
+      }
+
       const { error } = await supabase
         .from("alert_configurations")
         .insert({
           alert_name: data.alert_name,
           metric_type: data.metric_type,
           comparison_operator: data.comparison_operator,
-          threshold_value: parseFloat(data.threshold_value),
+          threshold_value: thresholdValue,
           notification_method: data.notification_method,
           notification_target: data.notification_target,
           is_active: true,
@@ -155,13 +160,51 @@ export const AlertManager = () => {
       alert_name: "",
       metric_type: "",
       comparison_operator: "greater_than",
-      threshold_value: "",
+      threshold_value: "0", // Mudança: resetar para "0" em vez de ""
       notification_method: "email",
       notification_target: "",
     });
   };
 
   const handleCreateAlert = () => {
+    // Validação adicional antes de enviar
+    if (!formData.alert_name.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome do alerta é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.metric_type) {
+      toast({
+        title: "Erro",
+        description: "Tipo de métrica é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.notification_target.trim()) {
+      toast({
+        title: "Erro",
+        description: "Destino da notificação é obrigatório",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const thresholdValue = parseFloat(formData.threshold_value);
+    if (isNaN(thresholdValue)) {
+      toast({
+        title: "Erro",
+        description: "Valor limite deve ser um número válido",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createAlertMutation.mutate(formData);
   };
 
@@ -181,13 +224,24 @@ export const AlertManager = () => {
   const handleUpdateAlert = () => {
     if (!editingAlert) return;
     
+    // Validação similar à criação
+    const thresholdValue = parseFloat(formData.threshold_value);
+    if (isNaN(thresholdValue)) {
+      toast({
+        title: "Erro",
+        description: "Valor limite deve ser um número válido",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     updateAlertMutation.mutate({
       id: editingAlert.id,
       updates: {
         alert_name: formData.alert_name,
         metric_type: formData.metric_type,
         comparison_operator: formData.comparison_operator,
-        threshold_value: parseFloat(formData.threshold_value),
+        threshold_value: thresholdValue,
         notification_method: formData.notification_method,
         notification_target: formData.notification_target,
       },
@@ -324,6 +378,7 @@ export const AlertManager = () => {
                       id="threshold_value"
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.threshold_value}
                       onChange={(e) => setFormData({ ...formData, threshold_value: e.target.value })}
                       placeholder="Ex: 5000"

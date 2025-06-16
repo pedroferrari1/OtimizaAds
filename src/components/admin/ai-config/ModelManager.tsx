@@ -74,8 +74,22 @@ export const ModelManager = () => {
     },
   });
 
+  // Função para verificar se o nome do modelo já existe
+  const checkModelNameExists = (modelName: string, excludeId?: string) => {
+    if (!models) return false;
+    return models.some(model => 
+      model.model_name.toLowerCase() === modelName.toLowerCase() && 
+      model.id !== excludeId
+    );
+  };
+
   const createModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      // Verificar se o nome do modelo já existe
+      if (checkModelNameExists(data.model_name)) {
+        throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
+      }
+
       // Ensure all required fields are present and convert to the correct insert type
       const insertData: ModelInsertData = {
         model_name: data.model_name,
@@ -113,6 +127,11 @@ export const ModelManager = () => {
 
   const updateModelMutation = useMutation({
     mutationFn: async (data: ModelFormData) => {
+      // Verificar se o nome do modelo já existe (excluindo o modelo atual)
+      if (checkModelNameExists(data.model_name, editingModel?.id)) {
+        throw new Error(`Já existe um modelo com o nome "${data.model_name}". Por favor, escolha um nome diferente.`);
+      }
+
       const updateData: ModelInsertData = {
         model_name: data.model_name,
         provider: data.provider,
@@ -341,6 +360,9 @@ export const ModelManager = () => {
                       <FormControl>
                         <Input placeholder="ex: gpt-4o-mini" {...field} />
                       </FormControl>
+                      <FormDescription>
+                        O nome deve ser único no sistema
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
