@@ -83,40 +83,35 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
 
       if (configuration) {
         // Atualizar configuração existente
-        const { error } = await supabase.rpc('update_ai_configuration', {
-          config_id: configuration.id,
-          config_data: data,
-          reason: changeReason || 'Atualização de configuração'
+        const { error } = await supabase.rpc('update_ai_config_v2', {
+          p_config_id: configuration.id,
+          p_config_level: data.config_level,
+          p_model_id: data.model_id,
+          p_system_prompt: data.system_prompt,
+          p_temperature: data.temperature,
+          p_max_tokens: data.max_tokens,
+          p_top_p: data.top_p,
+          p_frequency_penalty: data.frequency_penalty,
+          p_presence_penalty: data.presence_penalty,
+          p_is_active: data.is_active
         });
         
         if (error) throw error;
         
         toast({
-          title: "Configuração atualizada",
+          title: "Sucesso",
           description: "Configuração atualizada com sucesso.",
         });
       } else {
         // Criar nova configuração
         const { error } = await supabase
           .from('ai_configurations')
-          .insert([{
-            ...data,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
+          .insert([data]);
 
         if (error) throw error;
         
-        // Registrar no histórico de configurações
-        await supabase.from('ai_config_history').insert({
-          action: 'created',
-          admin_user_id: (await supabase.auth.getUser()).data.user?.id,
-          new_values: data,
-          change_reason: changeReason || 'Nova configuração'
-        });
-
         toast({
-          title: "Configuração criada",
+          title: "Sucesso",
           description: "Configuração criada com sucesso.",
         });
       }
@@ -125,7 +120,7 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
     } catch (error: any) {
       console.error('Erro ao salvar configuração:', error);
       toast({
-        title: "Erro ao salvar configuração",
+        title: "Erro",
         description: error.message || "Erro ao salvar configuração.",
         variant: "destructive",
       });
