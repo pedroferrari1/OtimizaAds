@@ -122,11 +122,11 @@ export const ConfigurationForm = ({ configuration, onClose, onSave }: Configurat
       }
 
       onSave();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro ao salvar configuração:', error);
       toast({
         title: "Erro",
-        description: error.message || "Erro ao salvar configuração.",
+        description: error instanceof Error ? error.message : "Erro ao salvar configuração.",
         variant: "destructive",
       });
     } finally {
