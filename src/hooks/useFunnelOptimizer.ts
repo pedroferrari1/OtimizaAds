@@ -23,8 +23,10 @@ export const useFunnelOptimizer = () => {
 
   const checkFeatureUsage = async () => {
     try {
+      if (!user) return;
+
       const { data, error } = await supabase.rpc('check_funnel_analysis_usage', {
-        user_uuid: user?.id
+        user_uuid: user.id
       });
 
       if (error) throw error;
@@ -38,7 +40,7 @@ export const useFunnelOptimizer = () => {
         });
         
         // Avisar se estiver próximo do limite
-        if (usage.limit_value > 0 && usage.current_usage >= usage.limit_value * 0.8) {
+        if (usage.limit_value > 0 && usage.current_usage >= usage.limit_value * 0.8 && usage.current_usage < usage.limit_value) {
           toast({
             title: "Atenção",
             description: `Você utilizou ${usage.current_usage} de ${usage.limit_value} análises disponíveis em seu plano.`,
@@ -49,6 +51,40 @@ export const useFunnelOptimizer = () => {
     } catch (error) {
       console.error('Erro ao verificar uso do recurso:', error);
     }
+  };
+
+  const validateTexts = (): {valid: boolean, message?: string} => {
+    // Validar texto do anúncio
+    if (!adText.trim()) {
+      return { 
+        valid: false, 
+        message: "Por favor, insira o texto do anúncio." 
+      };
+    }
+
+    if (adText.length > 2000) {
+      return { 
+        valid: false, 
+        message: "O texto do anúncio deve ter no máximo 2000 caracteres." 
+      };
+    }
+
+    // Validar texto da página de destino
+    if (!landingPageText.trim()) {
+      return { 
+        valid: false, 
+        message: "Por favor, insira o texto da página de destino." 
+      };
+    }
+
+    if (landingPageText.length > 5000) {
+      return { 
+        valid: false, 
+        message: "O texto da página de destino deve ter no máximo 5000 caracteres." 
+      };
+    }
+
+    return { valid: true };
   };
 
   const saveToHistory = async (
@@ -117,10 +153,12 @@ ${results.optimizedAd}
   };
 
   const handleAnalyze = async () => {
-    if (!adText.trim() || !landingPageText.trim()) {
+    // Validar textos de entrada
+    const validation = validateTexts();
+    if (!validation.valid) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha o texto do anúncio e da página de destino.",
+        title: "Validação",
+        description: validation.message,
         variant: "destructive",
       });
       return;
@@ -138,12 +176,19 @@ ${results.optimizedAd}
     setIsAnalyzing(true);
 
     try {
-      // Chamar a Edge Function
+      // Chamar a Edge Function do Supabase
       const { data, error } = await supabase.functions.invoke('funnel-optimizer', {
-        body: { adText, landingPageText }
+        body: { 
+          adText: adText.trim(), 
+          landingPageText: landingPageText.trim() 
+        }
       });
       
       if (error) throw error;
+      
+      if (!data || !data.funnelCoherenceScore) {
+        throw new Error('Resposta inválida da API');
+      }
       
       // Atualizar dados de uso após análise bem-sucedida
       await checkFeatureUsage();
@@ -154,11 +199,16 @@ ${results.optimizedAd}
       // Salvar no histórico
       await saveToHistory(adText, landingPageText, data);
       
+      toast({
+        title: "Análise concluída!",
+        description: `Pontuação de coerência: ${data.funnelCoherenceScore}/10`,
+      });
+      
     } catch (error: any) {
       console.error('Error analyzing funnel:', error);
       
       // Verificar se é um erro de limite de plano
-      if (error.message?.includes('plano atual não inclui acesso')) {
+      if (error.message?.includes('não inclui acesso')) {
         setCanUseFeature(false);
         toast({
           title: "Recurso não disponível",
@@ -168,7 +218,7 @@ ${results.optimizedAd}
       } else {
         toast({
           title: "Erro na análise",
-          description: "Não foi possível analisar os textos. Tente novamente mais tarde.",
+          description: error.message || "Não foi possível analisar os textos. Tente novamente mais tarde.",
           variant: "destructive",
         });
       }
