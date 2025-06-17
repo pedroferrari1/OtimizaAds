@@ -71,8 +71,7 @@ const ReportsAndMetrics = ({ subscriptions, loading }: ReportsAndMetricsProps) =
       conversionData,
       planDistribution,
       metrics
-    };
-  }, [subscriptions]);  // eslint-disable-line react-hooks/exhaustive-deps
+    };  }, [subscriptions]);
   // timeRange não é usado diretamente no cálculo, então pode ser removido das dependências
 
   const handleExportReport = async () => {

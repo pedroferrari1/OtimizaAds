@@ -12,7 +12,7 @@ export const useAdGenerator = () => {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const { user } = useAuth();
 
-  const saveToHistory = async (inputData: any, generatedAds: string[]) => {
+  const saveToHistory = async (inputData: Record<string, unknown>, generatedAds: string[]) => {
     if (!user) return;
 
     try {

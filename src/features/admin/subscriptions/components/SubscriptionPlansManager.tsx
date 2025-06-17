@@ -499,7 +499,7 @@ const PlanForm = ({
   onCancel 
 }: { 
   plan: SubscriptionPlan | null; 
-  onSave: (data: any) => void;
+  onSave: (data: Partial<SubscriptionPlan>) => void;
   onCancel: () => void;
 }) => {
   const [formData, setFormData] = useState({
@@ -537,7 +537,7 @@ const PlanForm = ({
     onSave(formData);
   };
 
-  const updateFeature = (key: string, value: any) => {
+  const updateFeature = (key: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       features: {

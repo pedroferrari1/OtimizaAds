@@ -6,6 +6,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/features/auth";
 import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+import { User } from "@supabase/supabase-js";
 import SubscriptionDetails from "./components/SubscriptionDetails";
 import SubscriptionPricing from "./components/SubscriptionPricing";
 import PaymentSection from "./components/PaymentSection";
@@ -46,11 +47,10 @@ const Subscription = () => {
     }
     
     if (canceled === 'true') {
-      setShowCanceled(true);
-      toast({
+      setShowCanceled(true);      toast({
         title: "Checkout cancelado",
         description: "Você cancelou o processo de checkout.",
-        variant: "secondary",
+        variant: "default",
       });
     }
     
@@ -58,8 +58,7 @@ const Subscription = () => {
     if (success || canceled) {
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
-    }
-  }, [location, refreshSubscription]);  // eslint-disable-line react-hooks/exhaustive-deps
+    }  }, [location, refreshSubscription]);
   // Adicionando refreshSubscription como dependência
 
   useEffect(() => {
@@ -195,7 +194,7 @@ const CanceledNotification = ({ onClose }: { onClose: () => void }) => (
   </Card>
 );
 
-const NoSubscriptionView = ({ user }: { user: any }) => (
+const NoSubscriptionView = ({ user }: { user: User | null }) => (
   <div className="space-y-8">
     <div className="text-center">
       <h1 className="text-3xl font-bold text-gray-900 mb-4">
